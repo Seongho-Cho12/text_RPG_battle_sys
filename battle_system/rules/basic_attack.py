@@ -5,6 +5,7 @@ from battle_system.core.types import CombatantID
 from battle_system.core.models import BattleState
 from battle_system.rules.checks import hit_check, crit_check
 from battle_system.rules.indices.facade import compute_attack_indices, IndexModifiers
+from battle_system.rules.indices.crit import CritStat
 
 
 DAMAGE_TABLE = {
@@ -20,6 +21,7 @@ def basic_attack(
     defender: CombatantID,
     *,
     modifiers: IndexModifiers = IndexModifiers(),  # 기본 공격은 기본값(0)
+    crit_stat: CritStat,
 ) -> dict:
     """
     기본 공격:
@@ -29,7 +31,7 @@ def basic_attack(
 
     스킬 공격도 같은 루트를 쓰되 modifiers만 다르게 주면 된다.
     """
-    indices = compute_attack_indices(bs, attacker, defender, modifiers=modifiers)
+    indices = compute_attack_indices(bs, attacker, defender, modifiers=modifiers, crit_stat=crit_stat)
 
     hit = hit_check(
         hit_index=indices.hit_eva.hit,

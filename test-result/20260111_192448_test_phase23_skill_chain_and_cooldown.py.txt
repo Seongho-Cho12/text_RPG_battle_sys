@@ -1,0 +1,148 @@
+============================================================
+[PASS] tests/test_phase23_skill_chain_and_cooldown.py::test_skill_chain_attack_evade_breaks_and_skips_next_steps
+------------------------------------------------------------
+[EXPERIMENT]
+공격이 EVADE(0)이면 require_prev_gte=1인 다음 step들은 실행되지 않고 체인이 끊겨야 한다.
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+[CHAIN EVADE] seed=0
+SLOT: MAIN used by A1
+STEP: ATTACK A1->E1 outcome=EVADE dmg=0
+STEP_SKIPPED: kind=APPLY_EFFECT require_prev_gte=1 prev=0
+CHAIN_BREAK
+
+
+============================================================
+[FAIL] tests/test_phase23_skill_chain_and_cooldown.py::test_skill_chain_attack_hit_allows_next_step_and_effect_may_apply
+------------------------------------------------------------
+[EXPERIMENT]
+공격 결과가 1 이상이면(WEAK/STRONG/CRITICAL) 다음 APPLY_EFFECT가 실행(시도)되어야 한다.
+    성공/실패는 status roll에 따름(둘 다 가능).
+
+
+[TRACEBACK]
+def test_skill_chain_attack_hit_allows_next_step_and_effect_may_apply():
+        """
+        공격 결과가 1 이상이면(WEAK/STRONG/CRITICAL) 다음 APPLY_EFFECT가 실행(시도)되어야 한다.
+        성공/실패는 status roll에 따름(둘 다 가능).
+        """
+        eng, bs, A1, E1 = _mk_engine_1v1()
+    
+        skill = Skill(
+            skill_id="test_attack_then_bleed",
+            name="Attack->Bleed",
+            actor=A1,
+            action_type="MAIN",
+            cooldown_turns=0,
+            steps=[
+                Step(kind="ATTACK", target=E1),
+                Step(kind="APPLY_EFFECT", target=E1, effect_id="Bleeding", effect_duration=2, status_inflict=30, require_prev_gte=1),
+            ],
+        )
+    
+        # hit(>=1) 발생 seed 탐색
+        found = None
+        found_outcome = None
+        for seed in range(0, 2000):
+            eng, bs, A1, E1 = _mk_engine_1v1()
+            random.seed(seed)
+>           out = eng.apply_skill(bs, skill)
+
+tests\test_phase23_skill_chain_and_cooldown.py:123: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+battle_system\engine\engine.py:137: in apply_skill
+    prev, step_events = self._apply_step(
+battle_system\engine\engine.py:249: in _apply_step
+    resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def compute_status_resist_index(
+        *,
+        stats: Stats,
+        status_id: StatusID,
+    ) -> StatusResistIndex:
+        """
+        상태이상 저항 지수 계산.
+    
+        공식:
+          저항 = CON + (보조 스탯 * 0.5)
+          - 보조 스탯이 없는 경우: CON * 1.5
+          - 소수점은 버림
+          - 즉사(INSTANT_DEATH)는 저항 불가
+    
+        ⚠ 이 함수는 '저항 지수 계산'만 담당한다.
+           실제 부여/해제 성공 여부는 checks.roll_status_success에서 처리.
+        """
+        if status_id not in STATUS_RESIST_STAT:
+>           raise ValueError(f"Unknown status_id: {status_id}")
+E           ValueError: Unknown status_id: Bleeding
+
+battle_system\rules\indices\status.py:93: ValueError
+============================================================
+[FAIL] tests/test_phase23_skill_chain_and_cooldown.py::test_skill_chain_status_success_required_for_modifier
+------------------------------------------------------------
+[EXPERIMENT]
+APPLY_EFFECT 성공(1)일 때만 다음 APPLY_MODIFIER가 실행되도록 검증.
+    - apply_effect가 실패하면(0) 체인 끊기 -> modifier 미적용.
+
+
+[TRACEBACK]
+def test_skill_chain_status_success_required_for_modifier():
+        """
+        APPLY_EFFECT 성공(1)일 때만 다음 APPLY_MODIFIER가 실행되도록 검증.
+        - apply_effect가 실패하면(0) 체인 끊기 -> modifier 미적용.
+        """
+        eng, bs, A1, E1 = _mk_engine_1v1()
+    
+        # 공격 없이, status 성공 시 modifier를 붙이는 체인
+        skill = Skill(
+            skill_id="test_bleed_then_mod",
+            name="Bleed->Mod",
+            actor=A1,
+            action_type="SUB",  # 슬롯도 같이 확인
+            cooldown_turns=0,
+            steps=[
+                Step(kind="APPLY_EFFECT", target=E1, effect_id="Bleeding", effect_duration=2, status_inflict=1),
+                Step(kind="APPLY_MODIFIER", target=E1, modifier_key="WEAK", modifier_delta=-10, modifier_duration=2, require_prev_gte=1),
+            ],
+        )
+    
+        # status 성공 seed와 실패 seed 둘 다 찾기
+        succ_seed = None
+        fail_seed = None
+        for seed in range(0, 3000):
+            eng, bs, A1, E1 = _mk_engine_1v1()
+            random.seed(seed)
+>           out = eng.apply_skill(bs, skill)
+
+tests\test_phase23_skill_chain_and_cooldown.py:172: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+battle_system\engine\engine.py:137: in apply_skill
+    prev, step_events = self._apply_step(
+battle_system\engine\engine.py:249: in _apply_step
+    resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def compute_status_resist_index(
+        *,
+        stats: Stats,
+        status_id: StatusID,
+    ) -> StatusResistIndex:
+        """
+        상태이상 저항 지수 계산.
+    
+        공식:
+          저항 = CON + (보조 스탯 * 0.5)
+          - 보조 스탯이 없는 경우: CON * 1.5
+          - 소수점은 버림
+          - 즉사(INSTANT_DEATH)는 저항 불가
+    
+        ⚠ 이 함수는 '저항 지수 계산'만 담당한다.
+           실제 부여/해제 성공 여부는 checks.roll_status_success에서 처리.
+        """
+        if status_id not in STATUS_RESIST_STAT:
+>           raise ValueError(f"Unknown status_id: {status_id}")
+E           ValueError: Unknown status_id: Bleeding
+
+battle_system\rules\indices\status.py:93: ValueError

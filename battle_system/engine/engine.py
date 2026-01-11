@@ -7,7 +7,7 @@ import uuid
 
 from battle_system.core.types import CombatantID, GroupID
 from battle_system.core.models import BattleState, CharacterDef, CombatantState
-from battle_system.core.commands import Step, ActionType
+from battle_system.core.commands import Step, Skill, ActionType
 from battle_system.formation.movement import engage, disengage
 from battle_system.formation.reactions import reaction_attack_candidates
 from battle_system.rules.basic_attack import basic_attack, execute_reaction_attacks
@@ -17,6 +17,7 @@ from battle_system.rules.checks import roll_status_success
 from battle_system.rules.indices.status import compute_status_resist_index
 from battle_system.timebase.durations import turns_to_ticks_for_battle
 from battle_system.core.models import ModifierInstance, ModifierKey
+from battle_system.rules.indices.crit import CritStat
 
 DISPEL_INFLICT = 20
 
@@ -93,35 +94,60 @@ class BattleEngine:
         bs.turn_index = (bs.turn_index + 1) % len(bs.turn_order)
         self._reset_turn_slots(bs, bs.current_actor_id())
 
-    def apply_steps(self, bs: BattleState, steps: list[Step], *, reaction_hit_penalty: int = 5) -> EngineOutcome:
+    def apply_skill(self, bs: BattleState, skill: Skill, *, reaction_hit_penalty: int = 5) -> EngineOutcome:
+        """
+        스킬 단위 실행 파이프라인.
+        - 슬롯(MAIN/SUB) 소모
+        - 쿨다운 확인/등록
+        - steps 순차 실행(각 step은 미시 행동)
+        """
         events: list[str] = []
+
+        # 0) 현재 턴 actor 확인
         actor = bs.current_actor_id()
+        if skill.actor != actor:
+            raise ValueError("Not your turn (skill.actor != current actor).")
 
-        # ✅ 추가: 전투 불능이면 행동 스킵
-        if bs.combatants[actor].is_down:
-            events.append(f"SKIP_TURN: {actor} is DOWN")
-            return EngineOutcome(events=events)
-
-        # 0) 모든 step의 actor는 현재 actor여야 함(단일 턴 실행 전제)
-        for s in steps:
-            if s.actor != actor:
-                raise ValueError("All steps must be executed by current actor.")
-
-        # 1) action 슬롯 소모(steps 전체가 한 action을 공유한다고 가정)
-        #    - 복합 스킬(이동+공격)도 MAIN 1회로 처리 가능
-        action_type = steps[0].action_type if steps else "MAIN"
-        if action_type == "MAIN":
+        # 1) 슬롯 소모
+        if skill.action_type == "MAIN":
             self._use_main(bs, actor)
-            events.append("SLOT: MAIN used")
+            events.append(f"SLOT: MAIN used by {actor}")
         else:
             self._use_sub(bs, actor)
-            events.append("SLOT: SUB used")
+            events.append(f"SLOT: SUB used by {actor}")
 
-        # 2) step 순차 실행
+        # 2) 쿨다운 체크
+        if skill.cooldown_turns > 0:
+            left = bs.combatants[actor].cooldowns.get(skill.skill_id, 0)
+            if left > 0:
+                raise ValueError(f"Skill on cooldown: {skill.skill_id} (ticks_left={left})")
+
+        # 3) step 실행
+        steps = skill.steps or []
+        prev: int = 1  # 첫 step은 기본 실행 가능
         for s in steps:
-            events.extend(self._apply_step(bs, s, reaction_hit_penalty=reaction_hit_penalty))
+            # 1) 조건 미달이면 이후 step 전부 중단
+            if prev < s.require_prev_gte:
+                events.append(
+                    f"STEP_SKIPPED: kind={s.kind} require_prev_gte={getattr(s, 'require_prev_gte', 0)} prev={prev}"
+                )
+                events.append("CHAIN_BREAK")
+                break
+
+            # 2) step 실행 -> result(정수) + events
+            prev, step_events = self._apply_step(
+                bs, actor=actor, s=s, reaction_hit_penalty=reaction_hit_penalty, crit_stat=skill.crit_stat
+            )
+            events.extend(step_events)
+
+        # 4) 쿨다운 등록(스킬 실행 완료 후)
+        if skill.cooldown_turns > 0:
+            cd_ticks = turns_to_ticks_for_battle(bs, int(skill.cooldown_turns))
+            bs.combatants[actor].cooldowns[skill.skill_id] = cd_ticks
+            events.append(f"COOLDOWN_SET: {actor} skill={skill.skill_id} turns={skill.cooldown_turns} ticks={cd_ticks}")
 
         return EngineOutcome(events=events)
+
 
     # ----------------- internal -----------------
 
@@ -171,10 +197,10 @@ class BattleEngine:
                         new_list.append(m)
                 st.modifiers = new_list
 
-    def _apply_step(self, bs: BattleState, s: Step, *, reaction_hit_penalty: int) -> list[str]:
+    def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, reaction_hit_penalty: int, crit_stat: CritStat) -> tuple[int, list[str]]:
         events: list[str] = []
-        actor = s.actor
         prev_gid = bs.combatants[actor].group_id
+        result: int = 1
 
         if s.kind == "MOVE_ENGAGE":
             if s.target is None:
@@ -199,46 +225,58 @@ class BattleEngine:
         elif s.kind == "ATTACK":
             if s.target is None:
                 raise ValueError("ATTACK requires target")
-            r = basic_attack(bs, attacker=actor, defender=s.target, modifiers=IndexModifiers())
-            events.append(f"STEP: ATTACK {actor}->{s.target} outcome={r['outcome']} dmg={r['damage']}")
+            r = basic_attack(bs, attacker=actor, defender=s.target, modifiers=IndexModifiers(), crit_stat=crit_stat)
+            outcome = r["outcome"]
+            events.append(f"STEP: ATTACK {actor}->{s.target} outcome={outcome} dmg={r['damage']}")
+
+            # ✅ 공격 성공도(회피0/약1/강2/치명3)
+            outcome_rank = {"EVADE": 0, "WEAK": 1, "STRONG": 2, "CRITICAL": 3}
+            result = int(outcome_rank.get(outcome, 0))
 
         elif s.kind == "APPLY_EFFECT":
             if s.target is None:
                 raise ValueError("APPLY_EFFECT requires target")
             if not s.effect_id or s.effect_duration is None:
-                raise ValueError("APPLY_EFFECT requires effect_id/effect_duration")
+                raise ValueError("APPLY_EFFECT requires effect_id/effect_duration(turns)")
             if s.status_inflict is None:
                 raise ValueError("APPLY_EFFECT requires status_inflict")
-            if s.effect_duration is None:
-                raise ValueError("APPLY_EFFECT requires effect_duration (turns)")
 
             tgt = s.target
             eff = s.effect_id
 
-            # ✅ 저항 지수는 엔진이 런타임에 계산
+            # ✅ duration(턴) -> tick 변환은 어떤 분기든 동일하게 적용
+            dur_ticks = turns_to_ticks_for_battle(bs, int(s.effect_duration))
+
             resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
 
             if not resist.resistible:
-                # 정책: 저항 불가(즉사 등) => 부여 자동 성공
-                bs.combatants[tgt].effects[eff] = int(s.effect_duration)
+                # 저항 불가 => 자동 성공(roll 없음)
+                prev = bs.combatants[tgt].effects.get(eff, 0)
+                bs.combatants[tgt].effects[eff] = prev + dur_ticks
                 events.append(
                     f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
                     f"inflict={s.status_inflict} resist=NA resistible=False roll=NA success=True"
                 )
-                events.append(f"EFFECT_APPLIED: {tgt} +{eff}({s.effect_duration})")
+                events.append(
+                    f"EFFECT_APPLIED: {tgt} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})"
+                )
+                result = 1
             else:
-                sr = roll_status_success(inflict=s.status_inflict, resist=resist.value)
+                sr = roll_status_success(inflict=int(s.status_inflict), resist=int(resist.value))
                 events.append(
                     f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
                     f"inflict={s.status_inflict} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
                 )
                 if sr.success:
-                    dur_ticks = turns_to_ticks_for_battle(bs, int(s.effect_duration))
                     prev = bs.combatants[tgt].effects.get(eff, 0)
                     bs.combatants[tgt].effects[eff] = prev + dur_ticks
-                    events.append(f"EFFECT_APPLIED: {tgt} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})")
+                    events.append(
+                        f"EFFECT_APPLIED: {tgt} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})"
+                    )
+                    result = 1
                 else:
                     events.append(f"EFFECT_RESISTED: {tgt} resisted {eff}")
+                    result = 0
 
         elif s.kind == "REMOVE_EFFECT":
             if s.target is None:
@@ -253,75 +291,30 @@ class BattleEngine:
                 events.append(f"EFFECT_REMOVE_NOOP: {tgt} has_no {eff}")
                 return events
 
-            # ✅ 저항 지수는 엔진이 런타임에 계산
             resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
 
             if not resist.resistible:
-                # 정책: 저항 불가(즉사 등) => 해제 불가(자동 실패)
+                # 저항 불가(즉사 등) => 해제 불가(자동 실패)
                 events.append(
                     f"DISPEL_CHECK: {actor}->{tgt} effect={eff} "
                     f"inflict={DISPEL_INFLICT} resist=NA resistible=False roll=NA success=True"
                 )
                 events.append(f"DISPEL_FAILED: {tgt} keeps {eff}")
+                result = 0
             else:
-                sr = roll_status_success(inflict=DISPEL_INFLICT, resist=resist.value)
-
-                # 부여와 정반대로 해석:
-                # - sr.success=True  => '걸린다' 쪽이므로 상태 유지(해제 실패)
-                # - sr.success=False => '안 걸린다' 쪽이므로 상태 해제(해제 성공)
+                sr = roll_status_success(inflict=int(DISPEL_INFLICT), resist=int(resist.value))
                 events.append(
                     f"DISPEL_CHECK: {actor}->{tgt} effect={eff} "
                     f"inflict={DISPEL_INFLICT} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
                 )
                 if sr.success:
+                    # success=True => '걸린다' => 해제 실패
                     events.append(f"DISPEL_FAILED: {tgt} keeps {eff}")
+                    result = 0
                 else:
                     del bs.combatants[tgt].effects[eff]
                     events.append(f"DISPEL_SUCCESS: {tgt} -{eff}")
-
-        elif s.kind == "ATTACK_APPLY_EFFECT":
-            if s.target is None:
-                raise ValueError("ATTACK_APPLY_EFFECT requires target")
-            if not s.effect_id or s.effect_duration is None:
-                raise ValueError("ATTACK_APPLY_EFFECT requires effect_id/effect_duration")
-            if s.status_inflict is None:
-                raise ValueError("ATTACK_APPLY_EFFECT requires status_inflict")
-            if s.effect_duration is None:
-                raise ValueError("ATTACK_APPLY_EFFECT requires effect_duration (turns)")
-
-            defender = s.target
-            eff = s.effect_id
-
-            r = basic_attack(bs, attacker=actor, defender=defender, modifiers=IndexModifiers())
-            events.append(f"STEP: ATTACK {actor}->{defender} outcome={r['outcome']} dmg={r['damage']}")
-
-            # 공격이 회피(EVADE)되면 상태이상 판정으로 가지 않음
-            if r["outcome"] == "EVADE":
-                events.append("STATUS_SKIPPED: attack evaded so no status check")
-            else:
-                resist = compute_status_resist_index(stats=bs.defs[defender].stats, status_id=eff)
-
-                if not resist.resistible:
-                    # 정책: 저항 불가 => 부여 자동 성공
-                    bs.combatants[defender].effects[eff] = int(s.effect_duration)
-                    events.append(
-                        f"STATUS_CHECK: {actor}->{defender} effect={eff} "
-                        f"inflict={s.status_inflict} resist=NA resistible=False roll=NA success=True"
-                    )
-                    events.append(f"EFFECT_APPLIED: {defender} +{eff}({s.effect_duration})")
-                else:
-                    sr = roll_status_success(inflict=s.status_inflict, resist=resist.value)
-                    events.append(
-                        f"STATUS_CHECK: {actor}->{defender} effect={eff} "
-                        f"inflict={s.status_inflict} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
-                    )
-                    if sr.success:
-                        dur_ticks = turns_to_ticks_for_battle(bs, int(s.effect_duration))
-                        prev = bs.combatants[defender].effects.get(eff, 0)
-                        bs.combatants[defender].effects[eff] = prev + dur_ticks
-                        events.append(f"EFFECT_APPLIED: {defender} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})")
-                    else:
-                        events.append(f"EFFECT_RESISTED: {defender} resisted {eff}")
+                    result = 1
 
         elif s.kind == "APPLY_MODIFIER":
             if s.target is None:
@@ -330,21 +323,18 @@ class BattleEngine:
                 raise ValueError("APPLY_MODIFIER requires modifier_key/modifier_delta/modifier_duration")
             tgt = s.target
 
-            # ✅ duration은 '턴' -> tick 변환
             dur_ticks = turns_to_ticks_for_battle(bs, int(s.modifier_duration))
-
-            # ✅ 같은 key/delta라도 항상 새 인스턴스(중첩)
             mid = uuid.uuid4().hex
-            key = s.modifier_key  # 문자열
+
             mi = ModifierInstance(
                 mid=mid,
-                key=key,  # type: ignore[arg-type]  (Literal 검사 목적; 런타임은 문자열)
+                key=s.modifier_key,  # Literal로 묶었으면 type: ignore 필요할 수 있음
                 delta=int(s.modifier_delta),
                 ticks_left=dur_ticks,
             )
             bs.combatants[tgt].modifiers.append(mi)
             events.append(
-                f"MOD_APPLIED: {tgt} mid={mid} key={key} delta={mi.delta} turns={s.modifier_duration} ticks={dur_ticks}"
+                f"MOD_APPLIED: {tgt} mid={mid} key={s.modifier_key} delta={mi.delta} turns={s.modifier_duration} ticks={dur_ticks}"
             )
 
         elif s.kind == "APPLY_HP_DELTA":
@@ -354,17 +344,15 @@ class BattleEngine:
                 raise ValueError("APPLY_HP_DELTA requires hp_delta")
             tgt = s.target
             before = bs.combatants[tgt].hp
-            bs.combatants[tgt].hp = before + int(s.hp_delta)  # hp setter가 0 clamp
+            bs.combatants[tgt].hp = before + int(s.hp_delta)  # ✅ hp setter가 0~max_hp clamp
             after = bs.combatants[tgt].hp
             events.append(f"HP_DELTA: {tgt} {before}->{after} (delta={int(s.hp_delta)})")
 
         else:
             raise ValueError(f"Unknown Step.kind: {s.kind}")
-        
-        # 쿨다운 저장
-        self._maybe_register_cooldown(bs, actor=actor, s=s, events=events)
 
-        return events
+        # ✅ 여기서 쿨다운 등록/검사는 절대 하지 않는다(스킬 단위로 이동)
+        return result, events
 
     def _run_reactions(
         self,
@@ -387,26 +375,3 @@ class BattleEngine:
             events.append(f"REACTION_ATTACK: {atk_id}->{mover} outcome={r['outcome']} dmg={r['damage']}")
         return events
 
-    # 쿨다운 체크
-    def _assert_not_on_cooldown(self, bs: BattleState, *, actor: CombatantID, cooldown_id: str) -> None:
-        cd = bs.combatants[actor].cooldowns.get(cooldown_id)
-        if cd is not None and cd > 0:
-            raise ValueError(f"Skill on cooldown: {cooldown_id} (ticks_left={cd})")
-
-    # 쿨다운이 있는 스킬이면 쿨다운 저장
-    def _maybe_register_cooldown(self, bs: BattleState, *, actor: CombatantID, s: Step, events: list[str]) -> None:
-        """
-        Step이 cooldown 정보를 가지면 (턴)->(tick) 환산해 actor.cooldowns에 저장
-        """
-        if not s.cooldown_id:
-            return
-
-        # ✅ 사용 전 쿨다운 체크
-        self._assert_not_on_cooldown(bs, actor=actor, cooldown_id=s.cooldown_id)
-
-        if s.cooldown_duration is None:
-            return
-
-        ticks = turns_to_ticks_for_battle(bs, int(s.cooldown_duration))
-        bs.combatants[actor].cooldowns[s.cooldown_id] = ticks
-        events.append(f"COOLDOWN_SET: {actor} {s.cooldown_id} turns={s.cooldown_duration} ticks={ticks}")
