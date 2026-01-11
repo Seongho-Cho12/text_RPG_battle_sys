@@ -1,0 +1,74 @@
+============================================================
+[PASS] tests/test_phase19_timebase_ticks.py::test_phase19_1_effect_turns_to_ticks_saved_correctly
+------------------------------------------------------------
+[EXPERIMENT]
+1) 상태이상 지속시간(턴)을 입력하면, 엔진이 tick으로 변환해 저장하는지 검증.
+    - 2인 전투(참여인원=2)에서 effect_duration=2(턴) => ticks=2*2+1=5
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase19-1] effect saved
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=POISONED inflict=10 resist=0 resistible=True roll=7 success=True
+  EFFECT_APPLIED: E1 +POISONED(turns=2, ticks=+5, total_ticks=5)
+
+
+============================================================
+[PASS] tests/test_phase19_timebase_ticks.py::test_phase19_2_end_turn_decrements_ticks_each_turn
+------------------------------------------------------------
+[EXPERIMENT]
+2) 턴이 지날 때마다(= end_turn 호출마다) effects/cooldowns tick이 전원 -1 되는지 검증.
+    - effect_duration=2턴 => 5 ticks 저장 후 end_turn 1회 => 4가 되어야 함.
+
+
+============================================================
+[PASS] tests/test_phase19_timebase_ticks.py::test_phase19_3_ticks_reach_zero_then_deleted
+------------------------------------------------------------
+[EXPERIMENT]
+3) tick이 0이 되면 effects/cooldowns에서 삭제되는지 검증.
+    - 2턴(5ticks) 부여 후 end_turn을 5번 호출하면 삭제되어야 함.
+
+
+============================================================
+[PASS] tests/test_phase19_timebase_ticks.py::test_phase19_4_cooldown_1turn_blocks_on_next_own_turn_then_expires
+------------------------------------------------------------
+[EXPERIMENT]
+4) 쿨다운 1턴:
+       - 사용 후 ticks=1*participants+1=3 저장
+       - end_turn 2번(상대 턴 포함) 지나 내 다음 턴이 되면 ticks_left=1이라 사용 불가
+       - 그 턴을 넘기면 0이 되어 cooldown 삭제 -> 이후 사용 가능
+
+    ⚠ 주의(요구사항 반영):
+       - 같은 스킬은 한 턴에 2번 못 쓰므로 '같은 턴 연속 사용'으로 테스트하지 않는다.
+       - "내 다음 턴"에서 막히는지 확인한다.
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase19-4] cooldown events
+  SLOT: MAIN used
+  STEP: ATTACK A1->E1 outcome=WEAK dmg=1
+  COOLDOWN_SET: A1 S_TEST turns=1 ticks=3
+
+
+============================================================
+[PASS] tests/test_phase19_timebase_ticks.py::test_phase19_5_reapply_same_effect_adds_duration_ticks
+------------------------------------------------------------
+[EXPERIMENT]
+5) 동일 effect_id를 다시 걸면 '덮어쓰기'가 아니라 tick이 누적되는지 검증.
+    - 2인 전투에서 1턴 부여 tick=3
+    - 1턴을 2번 걸면 total=6
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase19-5] effect reapply adds ticks
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=POISONED inflict=10 resist=0 resistible=True roll=10 success=True
+  EFFECT_APPLIED: E1 +POISONED(turns=1, ticks=+3, total_ticks=3)
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=POISONED inflict=10 resist=0 resistible=True roll=8 success=True
+  EFFECT_APPLIED: E1 +POISONED(turns=1, ticks=+3, total_ticks=4)
+
+

@@ -1,0 +1,29 @@
+============================================================
+[PASS] tests/test_phase7_reaction_execution.py::test_phase7_reaction_attacks_apply_damage_with_penalty
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: 반응공격 후보들이 명중 페널티를 적용한 기본 공격을 수행하고 HP가 감소하는지 검증
+    SETUP:
+      - Allies:
+        - A1 (agi=5)  ← 이동자
+      - Enemies (모두 근접):
+        - E1 (agi=20)
+        - E2 (agi=20)
+      - 시나리오:
+        1) A1이 E1에게 ENGAGE → 같은 그룹
+        2) A1이 DISENGAGE → 반응공격 트리거
+      - 반응공격 명중 페널티: 5
+      - 랜덤 시드 고정으로 결과 재현
+    STEPS:
+      1) create_battle
+      2) ENGAGE(A1,E1)
+      3) prev_gid 저장
+      4) DISENGAGE(A1)
+      5) reaction_attack_candidates로 후보 산출
+      6) execute_reaction_attacks 실행
+    EXPECTED:
+      - 후보: E1, E2
+      - 각 적은 A1을 1회씩 공격
+      - 명중 시 A1.hp가 감소
+      - 반환 결과는 {E1: bool, E2: bool} 형태
+

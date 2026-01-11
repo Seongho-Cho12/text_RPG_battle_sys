@@ -1,0 +1,166 @@
+============================================================
+[PASS] tests/test_phase14_effect_steps.py::test_phase14_apply_effect_trials_and_duration_decrements
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: APPLY_EFFECT가 즉시 상태이상 판정을 수행하고, 성공 시 effects에 duration이 들어가며 end_turn로 감소/만료되는지 검증
+    SETUP:
+      - effect_id="BLEED", duration=2
+      - inflict/resist를 12/12로 두어 성공/저항이 섞이도록 한다.
+      - 여러 trial을 돌리고 각 trial 로그를 출력한다(리포트 txt 확인 목적).
+    STEPS:
+      - trial 반복:
+        1) seed 고정
+        2) 전투 생성(A1 선턴)
+        3) APPLY_EFFECT 실행
+        4) 성공한 경우 end_turn 2회로 2->1->삭제 확인
+    EXPECTED:
+      - STATUS_CHECK 로그가 항상 존재
+      - 성공 시 EFFECT_APPLIED 로그 + duration 감소/삭제
+      - 실패 시 EFFECT_RESISTED 로그
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase14 APPLY_EFFECT Trials] N=20 base_seed=50000 effect=BLEED dur=2 inflict=12 resist=12
+
+--- trial=0 seed=50000
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=15 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=1 seed=50001
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=15 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=2 seed=50002
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=2 success=True
+  EFFECT_APPLIED: E1 +BLEED(2)
+
+--- trial=3 seed=50003
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=17 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=4 seed=50004
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=5 success=True
+  EFFECT_APPLIED: E1 +BLEED(2)
+
+--- trial=5 seed=50005
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=21 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=6 seed=50006
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=21 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=7 seed=50007
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=14 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=8 seed=50008
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=23 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=9 seed=50009
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=15 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=10 seed=50010
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=1 success=True
+  EFFECT_APPLIED: E1 +BLEED(2)
+
+--- trial=11 seed=50011
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=21 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=12 seed=50012
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=17 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=13 seed=50013
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=15 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=14 seed=50014
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=20 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=15 seed=50015
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=5 success=True
+  EFFECT_APPLIED: E1 +BLEED(2)
+
+--- trial=16 seed=50016
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=4 success=True
+  EFFECT_APPLIED: E1 +BLEED(2)
+
+--- trial=17 seed=50017
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=16 success=False
+  EFFECT_RESISTED: E1 resisted BLEED
+
+--- trial=18 seed=50018
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=8 success=True
+  EFFECT_APPLIED: E1 +BLEED(2)
+
+--- trial=19 seed=50019
+  SLOT: MAIN used
+  STATUS_CHECK: A1->E1 effect=BLEED inflict=12 resist=12 roll=2 success=True
+  EFFECT_APPLIED: E1 +BLEED(2)
+
+[Summary] applied=7, resisted=13
+
+
+============================================================
+[PASS] tests/test_phase14_effect_steps.py::test_phase14_remove_effect_uses_check_and_can_succeed_or_fail_over_trials
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: REMOVE_EFFECT가 무조건 해제하지 않고, 판정(굴림)을 수행하여 성공/실패가 갈릴 수 있음을 검증
+    SETUP:
+      - E1에게 BURN(duration=3)을 사전 주입한다.
+      - REMOVE_EFFECT는 status_inflict/status_resist를 사용해 DISP EL 체크를 수행해야 한다.
+      - trials를 돌려서 최소 1회는 실패 로그, 최소 1회는 성공 로그가 나오도록 유도한다.
+    STEPS:
+      - trial 반복:
+        1) seed 고정
+        2) (상태가 남아있으면) REMOVE_EFFECT 실행
+        3) DISPEL_CHECK 로그 존재 확인
+        4) 성공 시 실제로 effects에서 제거되는지 확인하고 종료
+    EXPECTED:
+      - DISPEL_CHECK 로그가 반드시 남는다(굴림 수행)
+      - 여러 번 시도하면 DISPEL_FAILED도 최소 1번은 관측될 가능성이 높다
+      - DISPEL_SUCCESS가 나오면 effects에서 제거되어야 한다
+
+
+============================================================
+[PASS] tests/test_phase14_effect_steps.py::test_phase14_attack_apply_effect_evade_skips_status_check_and_hit_can_reach_status_check
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: ATTACK_APPLY_EFFECT에서 EVADE면 상태이상 판정으로 가지 않고, HIT이면 상태이상 판정 로그가 찍히는지 검증
+    SETUP:
+      - 케이스1(회피 유도): A1을 매우 약하게, E1을 매우 강하게 세팅
+      - 케이스2(명중 유도): A1을 매우 강하게, E1을 매우 약하게 세팅
+      - 두 케이스 모두에서 step을 여러 번 시도하여 목적 로그가 최소 1회는 나오게 한다(플레이키 방지)
+    STEPS:
+      - evade 유도 전투에서 최대 30회 시도: STATUS_SKIPPED가 나오면 성공
+      - hit 유도 전투에서 최대 30회 시도: STATUS_CHECK가 나오면 성공
+    EXPECTED:
+      - EVADE 시도에서 STATUS_SKIPPED를 최소 1회 확인
+      - HIT 시도에서 STATUS_CHECK를 최소 1회 확인
+
+

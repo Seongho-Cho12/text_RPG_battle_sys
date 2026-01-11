@@ -1,0 +1,23 @@
+============================================================
+[PASS] tests/test_phase12_effects_duration.py::test_phase12_end_turn_decrements_effects_for_all_combatants_and_expires
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: end_turn()마다 전원의 effects duration이 1씩 감소하고 0 이하가 되면 자동 삭제되는지 검증
+    SETUP:
+      - A1, E1에 각각 effects를 주입한다.
+        A1.effects["BLEED"]=2
+        E1.effects["BURN"]=1
+      - end_turn 1회:
+        A1.BLEED 2->1
+        E1.BURN 1->0 => 삭제
+      - end_turn 1회 추가:
+        A1.BLEED 1->0 => 삭제
+    STEPS:
+      1) effects 주입
+      2) end_turn 1회 후 값 확인
+      3) end_turn 1회 추가 후 값 확인
+    EXPECTED:
+      - 전역 tick도 2 증가
+      - 만료된 effect는 dict에서 제거된다
+
+

@@ -1,0 +1,44 @@
+============================================================
+[PASS] D:\AI_RPG\research_1\text_RPG\battle_system\tests\test_phase20_22_modifiers.py::test_phase22_apply_hp_delta_is_immediate_and_clamped_2
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: APPLY_HP_DELTA가 즉시 반영되고 최대 체력 이상 올라가면 clamp되는지 검증
+    PURPOSE:
+      - hp_delta는 지속형이 아니라 즉시 반영이다.
+      - hp가 최대 체력 이상으로 올라가면 최대 체력으로 clamp해야 한다.
+    SETUP:
+      - 2인 전투(A1 vs E1)
+      - E1의 hp를 5로 맞춘 다음, hp_delta=999 적용
+    STEPS:
+      1) E1 hp=5 설정
+      2) APPLY_HP_DELTA(delta=999) 실행
+      3) E1 hp가 50인지 확인
+    EXPECTED:
+      - hp: 5 -> 50
+      - is_down: True
+
+[CAPTURED OUTPUT]
+
+[Phase22] HP_DELTA events:
+  SLOT: MAIN used
+  HP_DELTA: E1 5->50 (delta=999)
+============================================================
+[PASS] tests/test_phase20_22_modifiers.py::test_phase22_apply_hp_delta_is_immediate_and_clamped_2
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: APPLY_HP_DELTA가 즉시 반영되고 최대 체력 이상 올라가면 clamp되는지 검증
+        PURPOSE:
+          - hp_delta는 지속형이 아니라 즉시 반영이다.
+          - hp가 최대 체력 이상으로 올라가면 최대 체력으로 clamp해야 한다.
+        SETUP:
+          - 2인 전투(A1 vs E1)
+          - E1의 hp를 5로 맞춘 다음, hp_delta=999 적용
+        STEPS:
+          1) E1 hp=5 설정
+          2) APPLY_HP_DELTA(delta=999) 실행
+          3) E1 hp가 50인지 확인
+        EXPECTED:
+          - hp: 5 -> 50
+          - is_down: True
+
+

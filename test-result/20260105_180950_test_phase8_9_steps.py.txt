@@ -1,0 +1,196 @@
+============================================================
+[FAIL] tests/test_phase8_9_steps.py::test_phase8_steps_move_engage_then_disengage_triggers_reactions_trials
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: Step 시퀀스(ENGAGE -> DISENGAGE)를 엔진이 실행하고 반응공격 로그가 리포트에 남는지 검증
+    SETUP:
+      - trial마다 seed를 바꿔가며 여러 번 실행해 결과 분포/로그를 확인한다.
+      - reaction_hit_penalty=5를 적용한다.
+      - ENGAGE는 반응공격이 발생하지 않을 수도 있지만,
+        DISENGAGE는 발생하는 것이 정상(후보가 존재하면).
+    STEPS:
+      - trial 반복:
+        1) random.seed 설정
+        2) 전투 생성
+        3) steps = [MOVE_ENGAGE(A1->E1), MOVE_DISENGAGE(A1)]
+        4) apply_steps 실행
+        5) A1 HP 변화와 이벤트를 print로 출력
+    EXPECTED:
+      - events에 "STEP:" 로그가 존재
+      - DISENGAGE 이후 "REACTION:" 로그가 존재 (candidates 또는 none)
+      - 출력이 캡처되어 test-result txt에 남는다
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase8 Step Trials] trials=10, base_seed=20000, reaction_hit_penalty=5
+
+
+[TRACEBACK]
+def test_phase8_steps_move_engage_then_disengage_triggers_reactions_trials():
+        """
+        TITLE: Step 시퀀스(ENGAGE -> DISENGAGE)를 엔진이 실행하고 반응공격 로그가 리포트에 남는지 검증
+        SETUP:
+          - trial마다 seed를 바꿔가며 여러 번 실행해 결과 분포/로그를 확인한다.
+          - reaction_hit_penalty=5를 적용한다.
+          - ENGAGE는 반응공격이 발생하지 않을 수도 있지만,
+            DISENGAGE는 발생하는 것이 정상(후보가 존재하면).
+        STEPS:
+          - trial 반복:
+            1) random.seed 설정
+            2) 전투 생성
+            3) steps = [MOVE_ENGAGE(A1->E1), MOVE_DISENGAGE(A1)]
+            4) apply_steps 실행
+            5) A1 HP 변화와 이벤트를 print로 출력
+        EXPECTED:
+          - events에 "STEP:" 로그가 존재
+          - DISENGAGE 이후 "REACTION:" 로그가 존재 (candidates 또는 none)
+          - 출력이 캡처되어 test-result txt에 남는다
+        """
+        TRIALS = 10
+        BASE_SEED = 20000
+        PENALTY = 5
+    
+        A1 = CombatantID("A1")
+        E1 = CombatantID("E1")
+    
+        print(f"\n[Phase8 Step Trials] trials={TRIALS}, base_seed={BASE_SEED}, reaction_hit_penalty={PENALTY}")
+        for t in range(TRIALS):
+            seed = BASE_SEED + t
+            random.seed(seed)
+    
+            eng, bs = _new_battle_for_reactions()
+            hp_before = bs.combatants[A1].hp
+    
+            steps = [
+>               Step(kind="MOVE_ENGAGE", actor=A1, target=E1, reaction_immune=False, action_type="MAIN"),
+                Step(kind="MOVE_DISENGAGE", actor=A1, target=None, reaction_immune=False, action_type="MAIN"),
+            ]
+E           TypeError: Step.__init__() got an unexpected keyword argument 'action_type'
+
+tests\test_phase8_9_steps.py:101: TypeError
+============================================================
+[FAIL] tests/test_phase8_9_steps.py::test_phase9_steps_attack_runs_trials_and_hp_delta_matches_damage
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: Step(ATTACK)을 엔진이 실행하고 로그/HP 변화가 일치하는지 검증(여러 trial)
+    SETUP:
+      - A1이 E1을 공격한다.
+      - 판정은 확률이므로 결과를 고정하지 않고:
+        - 로그 형식
+        - damage 범위
+        - HP 감소량 == damage
+        를 확인한다.
+    STEPS:
+      - trial 반복:
+        1) seed 설정
+        2) 1:1 전투 생성
+        3) apply_steps([ATTACK]) 실행
+        4) 이벤트 출력
+    EXPECTED:
+      - events에 "STEP: ATTACK ..." 로그가 존재
+      - damage는 0 또는 {1,3,9}
+      - E1 HP 감소량은 damage와 동일
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase9 Step Trials] trials=10, base_seed=21000
+
+
+[TRACEBACK]
+def test_phase9_steps_attack_runs_trials_and_hp_delta_matches_damage():
+        """
+        TITLE: Step(ATTACK)을 엔진이 실행하고 로그/HP 변화가 일치하는지 검증(여러 trial)
+        SETUP:
+          - A1이 E1을 공격한다.
+          - 판정은 확률이므로 결과를 고정하지 않고:
+            - 로그 형식
+            - damage 범위
+            - HP 감소량 == damage
+            를 확인한다.
+        STEPS:
+          - trial 반복:
+            1) seed 설정
+            2) 1:1 전투 생성
+            3) apply_steps([ATTACK]) 실행
+            4) 이벤트 출력
+        EXPECTED:
+          - events에 "STEP: ATTACK ..." 로그가 존재
+          - damage는 0 또는 {1,3,9}
+          - E1 HP 감소량은 damage와 동일
+        """
+        TRIALS = 10
+        BASE_SEED = 21000
+    
+        A1 = CombatantID("A1")
+        E1 = CombatantID("E1")
+    
+        allowed_damage = {0, 1, 3, 9}
+    
+        print(f"\n[Phase9 Step Trials] trials={TRIALS}, base_seed={BASE_SEED}")
+        for t in range(TRIALS):
+            seed = BASE_SEED + t
+            random.seed(seed)
+    
+            eng, bs = _new_battle_for_attack()
+            hp_before = bs.combatants[E1].hp
+    
+            steps = [
+>               Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="MAIN"),
+            ]
+E           TypeError: Step.__init__() got an unexpected keyword argument 'action_type'
+
+tests\test_phase8_9_steps.py:155: TypeError
+============================================================
+[FAIL] tests/test_phase8_9_steps.py::test_phase9_steps_combo_move_then_attack_single_main_consumption
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: 복합 Step 시퀀스(MOVE_ENGAGE -> ATTACK)를 '한 번의 MAIN 소비'로 실행 가능함을 검증
+    SETUP:
+      - A1이 E1에게 ENGAGE 후 즉시 ATTACK하는 시나리오를 Step으로 구성한다.
+      - apply_steps는 steps[0].action_type으로 슬롯을 1회만 소모한다는 가정이다.
+    STEPS:
+      1) 전투 생성
+      2) A1의 can_main은 True로 시작
+      3) apply_steps([MOVE_ENGAGE, ATTACK]) 실행
+      4) 실행 후 can_main이 False인지 확인
+      5) 같은 턴에서 MAIN을 한 번 더 쓰려 하면 실패해야 한다(선택 검증)
+    EXPECTED:
+      - 실행 후 A1.can_main == False
+      - 이벤트에 MOVE_ENGAGE, ATTACK 로그가 모두 존재
+
+
+[TRACEBACK]
+def test_phase9_steps_combo_move_then_attack_single_main_consumption():
+        """
+        TITLE: 복합 Step 시퀀스(MOVE_ENGAGE -> ATTACK)를 '한 번의 MAIN 소비'로 실행 가능함을 검증
+        SETUP:
+          - A1이 E1에게 ENGAGE 후 즉시 ATTACK하는 시나리오를 Step으로 구성한다.
+          - apply_steps는 steps[0].action_type으로 슬롯을 1회만 소모한다는 가정이다.
+        STEPS:
+          1) 전투 생성
+          2) A1의 can_main은 True로 시작
+          3) apply_steps([MOVE_ENGAGE, ATTACK]) 실행
+          4) 실행 후 can_main이 False인지 확인
+          5) 같은 턴에서 MAIN을 한 번 더 쓰려 하면 실패해야 한다(선택 검증)
+        EXPECTED:
+          - 실행 후 A1.can_main == False
+          - 이벤트에 MOVE_ENGAGE, ATTACK 로그가 모두 존재
+        """
+        random.seed(22000)
+    
+        eng, bs = _new_battle_for_reactions()
+        A1 = CombatantID("A1")
+        E1 = CombatantID("E1")
+    
+        # 시작 슬롯 상태 확인
+        assert bs.combatants[A1].can_main is True
+    
+        steps = [
+>           Step(kind="MOVE_ENGAGE", actor=A1, target=E1, reaction_immune=False, action_type="MAIN"),
+            Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="MAIN"),
+        ]
+E       TypeError: Step.__init__() got an unexpected keyword argument 'action_type'
+
+tests\test_phase8_9_steps.py:200: TypeError

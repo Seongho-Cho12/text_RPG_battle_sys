@@ -1,0 +1,123 @@
+============================================================
+[PASS] D:\AI_RPG\research_1\text_RPG\battle_system\tests\test_phase20_22_modifiers.py::test_phase22_apply_hp_delta_is_immediate_and_clamped
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: APPLY_HP_DELTA가 즉시 반영되고 0 아래로 내려가면 clamp되는지 검증
+    PURPOSE:
+      - hp_delta는 지속형이 아니라 즉시 반영이다.
+      - hp가 0 이하로 내려가면 CombatantState.hp setter가 0으로 clamp해야 한다.
+    SETUP:
+      - 2인 전투(A1 vs E1)
+      - E1의 hp를 5로 맞춘 다음, hp_delta=-999 적용
+    STEPS:
+      1) E1 hp=5 설정
+      2) APPLY_HP_DELTA(delta=-999) 실행
+      3) E1 hp가 0인지 확인 + is_down True인지 확인
+    EXPECTED:
+      - hp: 5 -> 0
+      - is_down: True
+
+[CAPTURED OUTPUT]
+
+[Phase22] HP_DELTA events:
+  SLOT: MAIN used
+  HP_DELTA: E1 5->0 (delta=-999)
+============================================================
+[PASS] tests/test_phase20_22_modifiers.py::test_phase22_apply_hp_delta_is_immediate_and_clamped
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: APPLY_HP_DELTA가 즉시 반영되고 0 아래로 내려가면 clamp되는지 검증
+        PURPOSE:
+          - hp_delta는 지속형이 아니라 즉시 반영이다.
+          - hp가 0 이하로 내려가면 CombatantState.hp setter가 0으로 clamp해야 한다.
+        SETUP:
+          - 2인 전투(A1 vs E1)
+          - E1의 hp를 5로 맞춘 다음, hp_delta=-999 적용
+        STEPS:
+          1) E1 hp=5 설정
+          2) APPLY_HP_DELTA(delta=-999) 실행
+          3) E1 hp가 0인지 확인 + is_down True인지 확인
+        EXPECTED:
+          - hp: 5 -> 0
+          - is_down: True
+
+
+============================================================
+[FAIL] tests/test_phase20_22_modifiers.py::test_phase22_apply_hp_delta_is_immediate_and_clamped_2
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: APPLY_HP_DELTA가 즉시 반영되고 최대 체력 이상 올라가면 clamp되는지 검증
+        PURPOSE:
+          - hp_delta는 지속형이 아니라 즉시 반영이다.
+          - hp가 최대 체력 이상으로 올라가면 최대 체력으로 clamp해야 한다.
+        SETUP:
+          - 2인 전투(A1 vs E1)
+          - E1의 hp를 5로 맞춘 다음, hp_delta=999 적용
+        STEPS:
+          1) E1 hp=5 설정
+          2) APPLY_HP_DELTA(delta=999) 실행
+          3) E1 hp가 50인지 확인
+        EXPECTED:
+          - hp: 5 -> 50
+          - is_down: True
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase22] HP_DELTA events:
+  SLOT: MAIN used
+  HP_DELTA: E1 5->1004 (delta=999)
+
+
+[TRACEBACK]
+capsys = <_pytest.capture.CaptureFixture object at 0x00000243F7130EF0>, request = <FixtureRequest for <Function test_phase22_apply_hp_delta_is_immediate_and_clamped_2>>
+
+    def test_phase22_apply_hp_delta_is_immediate_and_clamped_2(capsys, request):
+        """
+        TITLE: APPLY_HP_DELTA가 즉시 반영되고 최대 체력 이상 올라가면 clamp되는지 검증
+            PURPOSE:
+              - hp_delta는 지속형이 아니라 즉시 반영이다.
+              - hp가 최대 체력 이상으로 올라가면 최대 체력으로 clamp해야 한다.
+            SETUP:
+              - 2인 전투(A1 vs E1)
+              - E1의 hp를 5로 맞춘 다음, hp_delta=999 적용
+            STEPS:
+              1) E1 hp=5 설정
+              2) APPLY_HP_DELTA(delta=999) 실행
+              3) E1 hp가 50인지 확인
+            EXPECTED:
+              - hp: 5 -> 50
+              - is_down: True
+        """
+        eng = BattleEngine()
+        a1 = _mk_char("A1", level=5, stats=Stats(str=1, agi=1, con=1, int=1, wis=1, cha=0))
+        e1 = _mk_char("E1", level=5, stats=Stats(str=1, agi=1, con=1, int=1, wis=1, cha=0), max_hp=50)
+        bs = eng.create_battle([a1], [e1])
+    
+        tgt = CombatantID("E1")
+        bs.combatants[tgt].hp = 5
+        assert bs.combatants[tgt].hp == 5
+        assert bs.combatants[tgt].is_down is False
+    
+        out = eng.apply_steps(
+            bs,
+            [
+                Step(
+                    kind="APPLY_HP_DELTA",
+                    actor=bs.current_actor_id(),
+                    target=tgt,
+                    action_type="MAIN",
+                    hp_delta=999,
+                )
+            ],
+        )
+    
+        print("\n[Phase22] HP_DELTA events:")
+        for e in out.events:
+            print(" ", e)
+    
+>       assert bs.combatants[tgt].hp == 50
+E       AssertionError: assert 1004 == 50
+E        +  where 1004 = CombatantState(cid='E1', team='ENEMY', _hp=1004, group_id=1, can_main=True, can_sub=True, cooldowns={}, effects={}, modifiers=[], flags=set()).hp
+
+tests\test_phase20_22_modifiers.py:351: AssertionError

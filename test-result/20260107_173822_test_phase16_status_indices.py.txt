@@ -1,0 +1,109 @@
+============================================================
+[PASS] tests/test_phase16_status_indices.py::test_phase16_status_resist_index_aux_stat_formula_and_flooring
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: 상태이상 저항 지수 계산식(보조 스탯 존재) 및 소수점 버림 검증
+    PURPOSE:
+      - 보조 스탯이 있는 상태이상은 아래 공식으로 저항 지수를 계산해야 한다.
+          저항 = CON + (보조 스탯 * 0.5)
+      - 소수점은 버림(int 내림)으로 처리되어야 한다.
+    SETUP:
+      - Stats: CON=11, STR=7, AGI=9, INT=5, WIS=3 (나머지 0)
+      - 케이스별 기대값:
+        1) BLEEDING(보조 STR):
+           = 11 + (7*0.5) = 11 + 3.5 = 14.5 -> int 내림 => 14
+        2) SLOW(보조 AGI):
+           = 11 + (9*0.5) = 11 + 4.5 = 15.5 -> int 내림 => 15
+        3) FEAR(보조 INT):
+           = 11 + (5*0.5) = 11 + 2.5 = 13.5 -> int 내림 => 13
+        4) CONFUSION(보조 WIS):
+           = 11 + (3*0.5) = 11 + 1.5 = 12.5 -> int 내림 => 12
+    STEPS:
+      1) 각 status_id로 compute_status_resist_index(stats, status_id)를 호출한다.
+      2) 반환된 (resistible, value)를 기대값과 비교한다.
+    EXPECTED:
+      - resistible=True
+      - value는 위 기대값과 정확히 일치
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase16 AuxStat Resist] CON=11 STR=7 AGI=9 INT=5 WIS=3
+  BLEEDING     aux=STR -> 14 (expected 14)
+  SLOW         aux=AGI -> 15 (expected 15)
+  FEAR         aux=INT -> 13 (expected 13)
+  CONFUSION    aux=WIS -> 12 (expected 12)
+
+
+============================================================
+[PASS] tests/test_phase16_status_indices.py::test_phase16_status_resist_index_no_aux_stat_uses_con_times_1p5
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: 상태이상 저항 지수 계산식(보조 스탯 없음) CON*1.5 적용 및 버림 검증
+    PURPOSE:
+      - 보조 스탯이 없는 상태이상은 아래 규칙으로 계산해야 한다.
+          저항 = CON * 1.5
+      - 소수점은 버림(int 내림)으로 처리되어야 한다.
+    SETUP:
+      - Stats: CON=11
+      - 기대값:
+        CON*1.5 = 11*1.5 = 16.5 -> int 내림 => 16
+      - 대상 상태이상(보조 스탯 없음):
+        POISONED, BURNED, FROSTBITE, CORRUPTION, FROZEN
+    STEPS:
+      1) 위 상태이상들에 대해 compute_status_resist_index를 호출한다.
+      2) value가 모두 16인지 확인한다.
+    EXPECTED:
+      - resistible=True
+      - value == 16
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase16 NoAux Resist] CON=11 -> expected 16 for no-aux statuses
+  POISONED     aux=None -> 16 (expected 16)
+  BURNED       aux=None -> 16 (expected 16)
+  FROSTBITE    aux=None -> 16 (expected 16)
+  CORRUPTION   aux=None -> 16 (expected 16)
+  FROZEN       aux=None -> 16 (expected 16)
+
+
+============================================================
+[PASS] tests/test_phase16_status_indices.py::test_phase16_instant_death_is_not_resistible
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: 즉사(INSTANT_DEATH)는 저항 불가(resistible=False) 검증
+    PURPOSE:
+      - 즉사 상태이상은 "저항 지수"로 굴리는 판정 자체가 존재하지 않아야 한다.
+      - 따라서 compute_status_resist_index는 resistible=False를 반환해야 한다.
+    SETUP:
+      - Stats는 어떤 값이어도 무관하지만, 임의로 CON=99를 넣어도 결과가 변하지 않아야 한다.
+    STEPS:
+      1) compute_status_resist_index(stats, "INSTANT_DEATH") 호출
+    EXPECTED:
+      - resistible=False
+      - value=0 (현재 구현 기준)
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase16 Instant Death] resistible=False value=0 verified
+
+
+============================================================
+[PASS] tests/test_phase16_status_indices.py::test_phase16_unknown_status_id_raises
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: 정의되지 않은 status_id 입력 시 예외 발생 검증
+    PURPOSE:
+      - StatusID는 게임 시스템에서 고정된 열거 집합이므로,
+        잘못된 문자열이 들어오면 조용히 계산하면 안 된다.
+      - 즉시 예외를 발생시켜 버그를 빠르게 발견해야 한다.
+    SETUP:
+      - status_id="NOT_A_STATUS"
+    STEPS:
+      1) compute_status_resist_index(stats, "NOT_A_STATUS") 호출
+    EXPECTED:
+      - ValueError 발생
+
+

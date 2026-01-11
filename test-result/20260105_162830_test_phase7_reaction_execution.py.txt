@@ -1,0 +1,23 @@
+============================================================
+[PASS] tests/test_phase7_reaction_execution.py::test_phase7_reaction_attacks_multiple_trials_and_log_to_report
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: 반응공격을 여러 번 실행하며(여러 seed) 결과를 출력하고 리포트 파일에서 확인 가능하게 한다
+    SETUP:
+      - 동일한 시나리오를 매 trial마다 새로 구성하여 누적 영향을 제거한다.
+      - 각 trial에서 random.seed를 다르게 설정한다(재현 가능 + 결과 다양).
+      - penalty=5로 반응공격 명중 페널티 적용.
+    STEPS:
+      1) trial을 N회 반복
+      2) 매 trial:
+         - seed 설정
+         - battle 세팅(ENGAGE -> DISENGAGE)
+         - execute_reaction_attacks 실행
+         - 결과(outcome/damage/HP변화)를 print로 남김
+      3) 전체 통계(총 hit 수, 총 damage)도 print로 남김
+    EXPECTED:
+      - 매 trial 결과 dict의 키는 항상 {E1,E2}
+      - outcome은 EVADE/WEAK/STRONG/CRITICAL 중 하나
+      - damage는 0 또는 {1,3,9}
+      - 출력이 conftest에 의해 test-result/...txt에 포함된다
+
