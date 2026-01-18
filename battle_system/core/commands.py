@@ -17,6 +17,8 @@ StepKind = Literal[
 ]
 
 ActionType = Literal["MAIN", "SUB"]
+StepRange = Literal["MELEE", "RANGED", "ANY"]
+StepArea  = Literal["SINGLE", "GROUP", "ALL"]
 
 
 @dataclass(frozen=True)
@@ -29,6 +31,10 @@ class Step:
     kind: StepKind
     target: Optional[CombatantID] = None
 
+    # 대상 관련
+    range: StepRange = "ANY"
+    area: StepArea = "SINGLE"
+    
     # 이동 관련
     reaction_immune: bool = False
     reaction_hit_penalty: int = 5  # move step에서만 의미 (engine에서 override 가능)
@@ -46,6 +52,7 @@ class Step:
     # hp delta(즉시 반영) payload
     hp_delta: Optional[int] = None          # 정수(± 가능), duration 없음
 
+    # 이전 Step 조건 필요치
     require_prev_gte: int = 0
 
 

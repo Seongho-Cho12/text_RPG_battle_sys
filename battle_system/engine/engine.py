@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 from dataclasses import dataclass
-from typing import List, Dict
+from typing import List, Dict, Optional
 import uuid
 
 from battle_system.core.types import CombatantID, GroupID
@@ -201,6 +201,7 @@ class BattleEngine:
         events: list[str] = []
         prev_gid = bs.combatants[actor].group_id
         result: int = 1
+        anchor = self._resolve_anchor(bs, s)
 
         if s.kind == "MOVE_ENGAGE":
             if s.target is None:
@@ -223,136 +224,264 @@ class BattleEngine:
             events.extend(self._run_reactions(bs, mover=actor, cands=cands, reaction_hit_penalty=reaction_hit_penalty))
 
         elif s.kind == "ATTACK":
-            if s.target is None:
-                raise ValueError("ATTACK requires target")
-            r = basic_attack(bs, attacker=actor, defender=s.target, modifiers=IndexModifiers(), crit_stat=crit_stat)
-            outcome = r["outcome"]
-            events.append(f"STEP: ATTACK {actor}->{s.target} outcome={outcome} dmg={r['damage']}")
+            # anchor/target 규칙
+            if s.target is None and s.area != "ALL":
+                raise ValueError("ATTACK requires target unless area == 'ALL'")
 
-            # ✅ 공격 성공도(회피0/약1/강2/치명3)
+            # ✅ 사거리 체크(근/원/무관)
+            if not self._check_range(bs, actor=actor, anchor=anchor, s=s):
+                events.append(f"OUT_OF_RANGE: ATTACK actor={actor} anchor={anchor} range={s.range} area={s.area}")
+                return 0, events
+
+            # ✅ 범위 확장(SINGLE/GROUP/ALL)
+            targets = self._resolve_targets(bs, anchor=anchor, s=s)
+            if not targets:
+                events.append(f"NO_TARGETS: ATTACK actor={actor} anchor={anchor} range={s.range} area={s.area}")
+                return 0, events
+
             outcome_rank = {"EVADE": 0, "WEAK": 1, "STRONG": 2, "CRITICAL": 3}
-            result = int(outcome_rank.get(outcome, 0))
+            best = 0
+
+            for tgt in targets:
+                r = basic_attack(bs, attacker=actor, defender=tgt, modifiers=IndexModifiers(), crit_stat=crit_stat)
+                outcome = r["outcome"]
+                events.append(f"STEP: ATTACK {actor}->{tgt} outcome={outcome} dmg={r['damage']}")
+                best = max(best, int(outcome_rank.get(outcome, 0)))
+
+            result = best
+
 
         elif s.kind == "APPLY_EFFECT":
-            if s.target is None:
-                raise ValueError("APPLY_EFFECT requires target")
+            if s.target is None and s.area != "ALL":
+                raise ValueError("APPLY_EFFECT requires target unless area == 'ALL'")
             if not s.effect_id or s.effect_duration is None:
                 raise ValueError("APPLY_EFFECT requires effect_id/effect_duration(turns)")
             if s.status_inflict is None:
                 raise ValueError("APPLY_EFFECT requires status_inflict")
 
-            tgt = s.target
-            eff = s.effect_id
+            # ✅ 사거리 체크(근/원/무관)
+            if not self._check_range(bs, actor=actor, anchor=anchor, s=s):
+                events.append(
+                    f"OUT_OF_RANGE: APPLY_EFFECT actor={actor} anchor={anchor} effect={s.effect_id} range={s.range} area={s.area}"
+                )
+                return 0, events
 
-            # ✅ duration(턴) -> tick 변환은 어떤 분기든 동일하게 적용
+            # ✅ 범위 확장(SINGLE/GROUP/ALL)
+            targets = self._resolve_targets(bs, anchor=anchor, s=s)
+            if not targets:
+                events.append(
+                    f"NO_TARGETS: APPLY_EFFECT actor={actor} anchor={anchor} effect={s.effect_id} range={s.range} area={s.area}"
+                )
+                return 0, events
+
+            eff = s.effect_id
             dur_ticks = turns_to_ticks_for_battle(bs, int(s.effect_duration))
 
-            resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
+            success_any = 0
 
-            if not resist.resistible:
-                # 저항 불가 => 자동 성공(roll 없음)
-                prev = bs.combatants[tgt].effects.get(eff, 0)
-                bs.combatants[tgt].effects[eff] = prev + dur_ticks
-                events.append(
-                    f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
-                    f"inflict={s.status_inflict} resist=NA resistible=False roll=NA success=True"
-                )
-                events.append(
-                    f"EFFECT_APPLIED: {tgt} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})"
-                )
-                result = 1
-            else:
-                sr = roll_status_success(inflict=int(s.status_inflict), resist=int(resist.value))
-                events.append(
-                    f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
-                    f"inflict={s.status_inflict} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
-                )
-                if sr.success:
+            for tgt in targets:
+                resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
+
+                if not resist.resistible:
                     prev = bs.combatants[tgt].effects.get(eff, 0)
                     bs.combatants[tgt].effects[eff] = prev + dur_ticks
                     events.append(
+                        f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
+                        f"inflict={s.status_inflict} resist=NA resistible=False roll=NA success=True"
+                    )
+                    events.append(
                         f"EFFECT_APPLIED: {tgt} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})"
                     )
-                    result = 1
+                    success_any = 1
                 else:
-                    events.append(f"EFFECT_RESISTED: {tgt} resisted {eff}")
-                    result = 0
+                    sr = roll_status_success(inflict=int(s.status_inflict), resist=int(resist.value))
+                    events.append(
+                        f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
+                        f"inflict={s.status_inflict} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
+                    )
+                    if sr.success:
+                        prev = bs.combatants[tgt].effects.get(eff, 0)
+                        bs.combatants[tgt].effects[eff] = prev + dur_ticks
+                        events.append(
+                            f"EFFECT_APPLIED: {tgt} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})"
+                        )
+                        success_any = 1
+                    else:
+                        events.append(f"EFFECT_RESISTED: {tgt} resisted {eff}")
+
+            result = 1 if success_any else 0
 
         elif s.kind == "REMOVE_EFFECT":
-            if s.target is None:
-                raise ValueError("REMOVE_EFFECT requires target")
+            if s.target is None and s.area != "ALL":
+                raise ValueError("REMOVE_EFFECT requires target unless area == 'ALL'")
             if not s.effect_id:
                 raise ValueError("REMOVE_EFFECT requires effect_id")
 
-            tgt = s.target
+            # ✅ 사거리 체크
+            if not self._check_range(bs, actor=actor, anchor=anchor, s=s):
+                events.append(
+                    f"OUT_OF_RANGE: REMOVE_EFFECT actor={actor} anchor={anchor} effect={s.effect_id} range={s.range} area={s.area}"
+                )
+                return 0, events
+
+            # ✅ 범위 확장
+            targets = self._resolve_targets(bs, anchor=anchor, s=s)
+            if not targets:
+                events.append(
+                    f"NO_TARGETS: REMOVE_EFFECT actor={actor} anchor={anchor} effect={s.effect_id} range={s.range} area={s.area}"
+                )
+                return 0, events
+
             eff = s.effect_id
+            success_any = 0
 
-            if eff not in bs.combatants[tgt].effects:
-                events.append(f"EFFECT_REMOVE_NOOP: {tgt} has_no {eff}")
-                return events
+            for tgt in targets:
+                if eff not in bs.combatants[tgt].effects:
+                    events.append(f"EFFECT_REMOVE_NOOP: {tgt} has_no {eff}")
+                    continue
 
-            resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
+                resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
 
-            if not resist.resistible:
-                # 저항 불가(즉사 등) => 해제 불가(자동 실패)
-                events.append(
-                    f"DISPEL_CHECK: {actor}->{tgt} effect={eff} "
-                    f"inflict={DISPEL_INFLICT} resist=NA resistible=False roll=NA success=True"
-                )
-                events.append(f"DISPEL_FAILED: {tgt} keeps {eff}")
-                result = 0
-            else:
-                sr = roll_status_success(inflict=int(DISPEL_INFLICT), resist=int(resist.value))
-                events.append(
-                    f"DISPEL_CHECK: {actor}->{tgt} effect={eff} "
-                    f"inflict={DISPEL_INFLICT} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
-                )
-                if sr.success:
-                    # success=True => '걸린다' => 해제 실패
+                if not resist.resistible:
+                    # 저항 불가 => 해제 불가(자동 실패)
+                    events.append(
+                        f"DISPEL_CHECK: {actor}->{tgt} effect={eff} "
+                        f"inflict={DISPEL_INFLICT} resist=NA resistible=False roll=NA success=True"
+                    )
                     events.append(f"DISPEL_FAILED: {tgt} keeps {eff}")
-                    result = 0
                 else:
-                    del bs.combatants[tgt].effects[eff]
-                    events.append(f"DISPEL_SUCCESS: {tgt} -{eff}")
-                    result = 1
+                    sr = roll_status_success(inflict=int(DISPEL_INFLICT), resist=int(resist.value))
+                    events.append(
+                        f"DISPEL_CHECK: {actor}->{tgt} effect={eff} "
+                        f"inflict={DISPEL_INFLICT} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
+                    )
+                    if sr.success:
+                        # success=True => '걸린다' => 해제 실패
+                        events.append(f"DISPEL_FAILED: {tgt} keeps {eff}")
+                    else:
+                        del bs.combatants[tgt].effects[eff]
+                        events.append(f"DISPEL_SUCCESS: {tgt} -{eff}")
+                        success_any = 1
+
+            result = 1 if success_any else 0
+
 
         elif s.kind == "APPLY_MODIFIER":
-            if s.target is None:
-                raise ValueError("APPLY_MODIFIER requires target")
+            if s.target is None and s.area != "ALL":
+                raise ValueError("APPLY_MODIFIER requires target unless area == 'ALL'")
             if s.modifier_key is None or s.modifier_delta is None or s.modifier_duration is None:
                 raise ValueError("APPLY_MODIFIER requires modifier_key/modifier_delta/modifier_duration")
-            tgt = s.target
+
+            # ✅ 사거리 체크
+            if not self._check_range(bs, actor=actor, anchor=anchor, s=s):
+                events.append(
+                    f"OUT_OF_RANGE: APPLY_MODIFIER actor={actor} anchor={anchor} key={s.modifier_key} range={s.range} area={s.area}"
+                )
+                return 0, events
+
+            # ✅ 범위 확장
+            targets = self._resolve_targets(bs, anchor=anchor, s=s)
+            if not targets:
+                events.append(
+                    f"NO_TARGETS: APPLY_MODIFIER actor={actor} anchor={anchor} key={s.modifier_key} range={s.range} area={s.area}"
+                )
+                return 0, events
 
             dur_ticks = turns_to_ticks_for_battle(bs, int(s.modifier_duration))
-            mid = uuid.uuid4().hex
+            applied_any = 0
 
-            mi = ModifierInstance(
-                mid=mid,
-                key=s.modifier_key,  # Literal로 묶었으면 type: ignore 필요할 수 있음
-                delta=int(s.modifier_delta),
-                ticks_left=dur_ticks,
-            )
-            bs.combatants[tgt].modifiers.append(mi)
-            events.append(
-                f"MOD_APPLIED: {tgt} mid={mid} key={s.modifier_key} delta={mi.delta} turns={s.modifier_duration} ticks={dur_ticks}"
-            )
+            for tgt in targets:
+                mid = uuid.uuid4().hex
+                mi = ModifierInstance(
+                    mid=mid,
+                    key=s.modifier_key,
+                    delta=int(s.modifier_delta),
+                    ticks_left=dur_ticks,
+                )
+                bs.combatants[tgt].modifiers.append(mi)
+                events.append(
+                    f"MOD_APPLIED: {tgt} mid={mid} key={s.modifier_key} delta={mi.delta} turns={s.modifier_duration} ticks={dur_ticks}"
+                )
+                applied_any = 1
+
+            result = 1 if applied_any else 0
+
 
         elif s.kind == "APPLY_HP_DELTA":
-            if s.target is None:
-                raise ValueError("APPLY_HP_DELTA requires target")
+            if s.target is None and s.area != "ALL":
+                raise ValueError("APPLY_HP_DELTA requires target unless area == 'ALL'")
             if s.hp_delta is None:
                 raise ValueError("APPLY_HP_DELTA requires hp_delta")
-            tgt = s.target
-            before = bs.combatants[tgt].hp
-            bs.combatants[tgt].hp = before + int(s.hp_delta)  # ✅ hp setter가 0~max_hp clamp
-            after = bs.combatants[tgt].hp
-            events.append(f"HP_DELTA: {tgt} {before}->{after} (delta={int(s.hp_delta)})")
+
+            # ✅ 사거리 체크
+            if not self._check_range(bs, actor=actor, anchor=anchor, s=s):
+                events.append(
+                    f"OUT_OF_RANGE: APPLY_HP_DELTA actor={actor} anchor={anchor} delta={int(s.hp_delta)} range={s.range} area={s.area}"
+                )
+                return 0, events
+
+            # ✅ 범위 확장
+            targets = self._resolve_targets(bs, anchor=anchor, s=s)
+            if not targets:
+                events.append(
+                    f"NO_TARGETS: APPLY_HP_DELTA actor={actor} anchor={anchor} delta={int(s.hp_delta)} range={s.range} area={s.area}"
+                )
+                return 0, events
+
+            for tgt in targets:
+                before = bs.combatants[tgt].hp
+                bs.combatants[tgt].hp = before + int(s.hp_delta)
+                after = bs.combatants[tgt].hp
+                events.append(f"HP_DELTA: {tgt} {before}->{after} (delta={int(s.hp_delta)})")
+
+            result = 1
+
 
         else:
             raise ValueError(f"Unknown Step.kind: {s.kind}")
 
-        # ✅ 여기서 쿨다운 등록/검사는 절대 하지 않는다(스킬 단위로 이동)
         return result, events
+    
+    def _resolve_anchor(self, bs: BattleState, s: Step) -> Optional[CombatantID]:
+        if s.area == "ALL":
+            return s.target  # 없어도 됨
+        if s.target is None:
+            raise ValueError("Step.target is required unless area == 'ALL'")
+        return s.target
+
+    def _check_range(self, bs: BattleState, actor: CombatantID, anchor: Optional[CombatantID], s: Step) -> bool:
+        if s.range == "ANY":
+            return True
+        if anchor is None:
+            # ALL인데 target 없는 경우: MELEE/RANGED는 의미가 없으니 막는게 안전
+            return False
+        a_gid = bs.combatants[actor].group_id
+        t_gid = bs.combatants[anchor].group_id
+        if s.range == "MELEE":
+            return a_gid == t_gid
+        if s.range == "RANGED":
+            return a_gid != t_gid
+        return True
+    
+    def _resolve_targets(self, bs: BattleState, anchor: Optional[CombatantID], s: Step) -> list[CombatantID]:
+        if s.area == "ALL":
+            return list(bs.combatants.keys())
+
+        # SINGLE / GROUP 는 anchor 필수
+        assert anchor is not None
+
+        if s.area == "SINGLE":
+            return [anchor]
+
+        if s.area == "GROUP":
+            anchor_state = bs.combatants[anchor]
+            gid = anchor_state.group_id
+            team = anchor_state.team  # "ALLY" or "ENEMY"
+
+            # 같은 그룹이더라도 팀이 섞일 수 있으니 "anchor와 같은 팀"만 적용
+            return [cid for cid in bs.groups.get(gid, []) if bs.combatants[cid].team == team]
+
+        raise ValueError(f"Unknown area: {s.area}")
 
     def _run_reactions(
         self,

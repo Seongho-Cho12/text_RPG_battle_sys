@@ -21,7 +21,7 @@ def basic_attack(
     defender: CombatantID,
     *,
     modifiers: IndexModifiers = IndexModifiers(),  # 기본 공격은 기본값(0)
-    crit_stat: CritStat,
+    crit_stat: CritStat = "STR",
 ) -> dict:
     """
     기본 공격:
