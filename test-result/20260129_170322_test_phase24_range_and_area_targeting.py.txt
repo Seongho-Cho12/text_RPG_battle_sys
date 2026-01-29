@@ -1,0 +1,268 @@
+============================================================
+[FAIL] tests/test_phase24_range_and_area_targeting.py::test_phase24_attack_melee_out_of_range_when_different_groups
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 24] 근거리(MELEE) 공격은 같은 그룹(=근접)일 때만 가능하다.
+
+    시나리오:
+    - 전투 시작 직후 A1(아군)과 E1(적군)은 서로 다른 그룹에 있다.
+    - A1이 E1을 근거리 공격(range=MELEE)으로 시도하면 사거리 조건 불만족.
+    기대:
+    - OUT_OF_RANGE 이벤트가 남고, 공격이 실제로 실행되지 않는다(ATTACK 로그 없음).
+    - E1의 HP는 변하지 않는다.
+
+
+[TRACEBACK]
+def test_phase24_attack_melee_out_of_range_when_different_groups():
+        """
+        [Phase 24] 근거리(MELEE) 공격은 같은 그룹(=근접)일 때만 가능하다.
+    
+        시나리오:
+        - 전투 시작 직후 A1(아군)과 E1(적군)은 서로 다른 그룹에 있다.
+        - A1이 E1을 근거리 공격(range=MELEE)으로 시도하면 사거리 조건 불만족.
+        기대:
+        - OUT_OF_RANGE 이벤트가 남고, 공격이 실제로 실행되지 않는다(ATTACK 로그 없음).
+        - E1의 HP는 변하지 않는다.
+        """
+        random.seed(1234)
+        eng, bs, A1, _, E1, _ = _mk_engine_2v2()
+        before = bs.combatants[E1].hp
+    
+        skill = Skill(
+            skill_id="P24_MELEE_OOR",
+            name="melee out of range",
+            actor=A1,
+            action_type="MAIN",
+            cooldown_turns=0,
+            crit_stat="STR",
+            steps=[
+                Step(
+                    kind="ATTACK",
+                    target=E1,
+                    range="MELEE",
+                    area="SINGLE",
+                ),
+            ],
+        )
+    
+>       _, events = eng.apply_skill(bs, skill)
+E       TypeError: cannot unpack non-iterable EngineOutcome object
+
+tests\test_phase24_range_and_area_targeting.py:100: TypeError
+============================================================
+[FAIL] tests/test_phase24_range_and_area_targeting.py::test_phase24_attack_ranged_out_of_range_when_same_group
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 24] 원거리(RANGED) 공격은 다른 그룹(=원거리)일 때만 가능하다.
+
+    시나리오:
+    - 강제로 E1을 A1과 같은 그룹으로 옮겨 '근접 상태'를 만든다.
+    - A1이 E1을 원거리 공격(range=RANGED)으로 시도하면 사거리 조건 불만족.
+    기대:
+    - OUT_OF_RANGE 이벤트가 남고, 공격이 실제로 실행되지 않는다(ATTACK 로그 없음).
+
+
+[TRACEBACK]
+def test_phase24_attack_ranged_out_of_range_when_same_group():
+        """
+        [Phase 24] 원거리(RANGED) 공격은 다른 그룹(=원거리)일 때만 가능하다.
+    
+        시나리오:
+        - 강제로 E1을 A1과 같은 그룹으로 옮겨 '근접 상태'를 만든다.
+        - A1이 E1을 원거리 공격(range=RANGED)으로 시도하면 사거리 조건 불만족.
+        기대:
+        - OUT_OF_RANGE 이벤트가 남고, 공격이 실제로 실행되지 않는다(ATTACK 로그 없음).
+        """
+        random.seed(1234)
+        eng, bs, A1, _, E1, _ = _mk_engine_2v2()
+    
+        # make same group
+        a_gid = _find_group_id_of(bs, A1)
+        _move_combatant_to_group(bs, E1, a_gid)
+    
+        skill = Skill(
+            skill_id="P24_RANGED_OOR",
+            name="ranged out of range",
+            actor=A1,
+            action_type="MAIN",
+            cooldown_turns=0,
+            crit_stat="STR",
+            steps=[
+                Step(
+                    kind="ATTACK",
+                    target=E1,
+                    range="RANGED",
+                    area="SINGLE",
+                ),
+            ],
+        )
+    
+>       _, events = eng.apply_skill(bs, skill)
+E       TypeError: cannot unpack non-iterable EngineOutcome object
+
+tests\test_phase24_range_and_area_targeting.py:141: TypeError
+============================================================
+[FAIL] tests/test_phase24_range_and_area_targeting.py::test_phase24_area_group_applies_only_to_anchor_team_even_if_group_mixed
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 24] 범위(GROUP)는 '타겟(앵커)이 속한 그룹'에 적용되지만,
+              그 그룹 안에 팀이 섞여 있어도 '앵커와 같은 팀'에게만 적용되어야 한다.
+
+    시나리오:
+    - 기본 상태에서는 적군(E1,E2)은 enemy_group 한 그룹.
+    - 여기에 아군 A2를 강제로 enemy_group으로 옮겨 그룹을 '혼합(ALLY+ENEMY)'으로 만든다.
+    - A1이 target=E1, area=GROUP로 HP_DELTA(-5)를 시전한다.
+    기대:
+    - E1, E2(앵커와 같은 ENEMY)만 HP가 줄어든다.
+    - A2(같은 그룹이지만 ALLY)는 영향을 받지 않는다.
+
+
+[TRACEBACK]
+def test_phase24_area_group_applies_only_to_anchor_team_even_if_group_mixed():
+        """
+        [Phase 24] 범위(GROUP)는 '타겟(앵커)이 속한 그룹'에 적용되지만,
+                  그 그룹 안에 팀이 섞여 있어도 '앵커와 같은 팀'에게만 적용되어야 한다.
+    
+        시나리오:
+        - 기본 상태에서는 적군(E1,E2)은 enemy_group 한 그룹.
+        - 여기에 아군 A2를 강제로 enemy_group으로 옮겨 그룹을 '혼합(ALLY+ENEMY)'으로 만든다.
+        - A1이 target=E1, area=GROUP로 HP_DELTA(-5)를 시전한다.
+        기대:
+        - E1, E2(앵커와 같은 ENEMY)만 HP가 줄어든다.
+        - A2(같은 그룹이지만 ALLY)는 영향을 받지 않는다.
+        """
+        eng, bs, A1, A2, E1, E2 = _mk_engine_2v2()
+    
+        enemy_gid = _find_group_id_of(bs, E1)
+        _move_combatant_to_group(bs, A2, enemy_gid)
+    
+        e1_before = bs.combatants[E1].hp
+        e2_before = bs.combatants[E2].hp
+        a2_before = bs.combatants[A2].hp
+    
+        skill = Skill(
+            skill_id="P24_GROUP_TEAM_FILTER",
+            name="group area team filter",
+            actor=A1,
+            action_type="MAIN",
+            cooldown_turns=0,
+            crit_stat="STR",
+            steps=[
+                Step(
+                    kind="APPLY_HP_DELTA",
+                    target=E1,
+                    hp_delta=-5,
+                    range="ANY",
+                    area="GROUP",
+                ),
+            ],
+        )
+    
+>       _, events = eng.apply_skill(bs, skill)
+E       TypeError: cannot unpack non-iterable EngineOutcome object
+
+tests\test_phase24_range_and_area_targeting.py:187: TypeError
+============================================================
+[FAIL] tests/test_phase24_range_and_area_targeting.py::test_phase24_area_all_applies_to_everyone_without_target
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 24] 광범위(ALL)는 전투 참가 전체에게 적용되어야 하며,
+              이 경우 target이 없어도 동작해야 한다.
+
+    시나리오:
+    - A1이 area=ALL, target=None 인 HP_DELTA(+1)를 사용한다.
+    기대:
+    - A1/A2/E1/E2 모두 HP가 +1 된다.
+    - 이벤트 로그에 4개의 HP_DELTA가 찍힌다.
+
+
+[TRACEBACK]
+def test_phase24_area_all_applies_to_everyone_without_target():
+        """
+        [Phase 24] 광범위(ALL)는 전투 참가 전체에게 적용되어야 하며,
+                  이 경우 target이 없어도 동작해야 한다.
+    
+        시나리오:
+        - A1이 area=ALL, target=None 인 HP_DELTA(+1)를 사용한다.
+        기대:
+        - A1/A2/E1/E2 모두 HP가 +1 된다.
+        - 이벤트 로그에 4개의 HP_DELTA가 찍힌다.
+        """
+        eng, bs, A1, A2, E1, E2 = _mk_engine_2v2()
+    
+        before = {cid: bs.combatants[cid].hp for cid in [A1, A2, E1, E2]}
+    
+        skill = Skill(
+            skill_id="P24_ALL_NO_TARGET",
+            name="all area without target",
+            actor=A1,
+            action_type="MAIN",
+            cooldown_turns=0,
+            crit_stat="STR",
+            steps=[
+                Step(
+                    kind="APPLY_HP_DELTA",
+                    target=None,
+                    hp_delta=+1,
+                    range="ANY",
+                    area="ALL",
+                ),
+            ],
+        )
+    
+>       _, events = eng.apply_skill(bs, skill)
+E       TypeError: cannot unpack non-iterable EngineOutcome object
+
+tests\test_phase24_range_and_area_targeting.py:232: TypeError
+============================================================
+[FAIL] tests/test_phase24_range_and_area_targeting.py::test_phase24_apply_effect_group_expands_targets
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 24] APPLY_EFFECT도 범위(GROUP)를 통해 여러 대상에게 확장 적용되어야 한다.
+
+    시나리오:
+    - A1이 E1을 앵커로 하여 area=GROUP 상태이상 부여를 시전.
+    - effect_id=INSTANT_DEATH는 status.py 규칙상 resistible=False로 처리되어 roll 없이 자동 성공한다.
+    기대:
+    - E1과 E2(적군 그룹 전원)에게 해당 effect가 부여된다.
+    - 상태이상 로그(STATUS_CHECK / EFFECT_APPLIED)가 2명에 대해 남는다.
+
+
+[TRACEBACK]
+def test_phase24_apply_effect_group_expands_targets():
+        """
+        [Phase 24] APPLY_EFFECT도 범위(GROUP)를 통해 여러 대상에게 확장 적용되어야 한다.
+    
+        시나리오:
+        - A1이 E1을 앵커로 하여 area=GROUP 상태이상 부여를 시전.
+        - effect_id=INSTANT_DEATH는 status.py 규칙상 resistible=False로 처리되어 roll 없이 자동 성공한다.
+        기대:
+        - E1과 E2(적군 그룹 전원)에게 해당 effect가 부여된다.
+        - 상태이상 로그(STATUS_CHECK / EFFECT_APPLIED)가 2명에 대해 남는다.
+        """
+        eng, bs, A1, _, E1, E2 = _mk_engine_2v2()
+    
+        skill = Skill(
+            skill_id="P24_EFFECT_GROUP",
+            name="apply effect group",
+            actor=A1,
+            action_type="MAIN",
+            cooldown_turns=0,
+            crit_stat="STR",
+            steps=[
+                Step(
+                    kind="APPLY_EFFECT",
+                    target=E1,
+                    effect_id="INSTANT_DEATH",
+                    effect_duration=1,
+                    status_inflict=999,  # 의미 없음(저항 불가라 roll 없음)
+                    range="ANY",
+                    area="GROUP",
+                ),
+            ],
+        )
+    
+>       _, events = eng.apply_skill(bs, skill)
+E       TypeError: cannot unpack non-iterable EngineOutcome object
+
+tests\test_phase24_range_and_area_targeting.py:274: TypeError
