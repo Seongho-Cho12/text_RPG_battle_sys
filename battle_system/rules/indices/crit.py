@@ -128,7 +128,7 @@ def _calc_agility_like(rarity: str, primary: float, secondary: float) -> tuple[f
     return weak, strong, crit
 
 
-def compute_crit_indices(*, attacker_level: int, attacker_stats: Stats, crit_stat: CritStat) -> CritIndices:
+def compute_crit_indices(*, attacker_level: int, attacker_stats: Stats, defender_stats: Stats, crit_stat: CritStat) -> CritIndices:
     """
     치명(약/강/치명타) 지수 계산.
 
@@ -144,20 +144,24 @@ def compute_crit_indices(*, attacker_level: int, attacker_stats: Stats, crit_sta
 
     if crit_stat == "STR":
         w, s, c = _calc_strength_like(rarity, primary=float(attacker_stats.str))
+        w += defender_stats.str
     elif crit_stat == "INT":
         w, s, c = _calc_strength_like(rarity, primary=float(attacker_stats.int))
+        w += defender_stats.int
     elif crit_stat == "AGI":
         w, s, c = _calc_agility_like(
             rarity,
             primary=float(attacker_stats.agi),
             secondary=float(attacker_stats.str),
         )
+        w += defender_stats.str
     elif crit_stat == "WIS":
         w, s, c = _calc_agility_like(
             rarity,
             primary=float(attacker_stats.wis),
             secondary=float(attacker_stats.int),
         )
+        w += defender_stats.int
     else:
         raise ValueError(f"Unknown crit_stat: {crit_stat}")
 

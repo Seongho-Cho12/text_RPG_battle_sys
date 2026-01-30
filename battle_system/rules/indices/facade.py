@@ -74,6 +74,7 @@ def compute_base_hit_evasion(
 def compute_base_crit(
     bs: BattleState,
     attacker: CombatantID,
+    defender: CombatantID,
     *,
     crit_stat: CritStat,
 ) -> CritIndices:
@@ -83,7 +84,9 @@ def compute_base_crit(
     실제 공식은 rules/indices/crit.py 에 있다.
     """
     atk = bs.defs[attacker]
-    ci = compute_crit_indices(attacker_level=atk.level, attacker_stats=atk.stats, crit_stat=crit_stat)
+    dfn = bs.defs[defender]
+
+    ci = compute_crit_indices(attacker_level=atk.level, attacker_stats=atk.stats, defender_stats=dfn.stats, crit_stat=crit_stat)
     return CritIndices(weak=ci.weak, strong=ci.strong, critical=ci.crit)
 
 
@@ -104,7 +107,7 @@ def compute_attack_indices(
       3) 최종 지수 반환
     """
     base_he = compute_base_hit_evasion(bs, attacker, defender)
-    base_crit = compute_base_crit(bs, attacker, crit_stat=crit_stat)
+    base_crit = compute_base_crit(bs, attacker, defender, crit_stat=crit_stat)
 
     he = HitEvasionIndices(
         hit=_apply_mod(base_he.hit, modifiers.hit),
