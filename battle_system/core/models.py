@@ -9,6 +9,7 @@ ModifierKey = Literal[
     "HIT", "EVADE",
     "STATUS_RESIST", "STATUS_INFLICT",
     "STR", "AGI", "CON", "INT", "WIS",
+    "PHYSICAL_DEFENSE", "MAGIC_DEFENSE",
 ]
 
 

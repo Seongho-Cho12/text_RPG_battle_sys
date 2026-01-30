@@ -35,6 +35,23 @@ class BattleConfig:
     ally_group_id: GroupID = GroupID(0)
     enemy_group_id: GroupID = GroupID(1)
 
+    
+def _sum_status_inflict_mod(bs: BattleState, cid: CombatantID) -> int:
+    st = bs.combatants[cid]
+    s = 0
+    for m in st.modifiers:
+        if m.key == "STATUS_INFLICT":
+            s += int(m.delta)
+    return s
+
+def _sum_status_resist_mod(bs: BattleState, cid: CombatantID) -> int:
+    st = bs.combatants[cid]
+    s = 0
+    for m in st.modifiers:
+        if m.key == "STATUS_RESIST":
+            s += int(m.delta)
+    return s
+
 
 class BattleEngine:
     def __init__(self, config: BattleConfig | None = None) -> None:
@@ -294,10 +311,12 @@ class BattleEngine:
                     )
                     success_any = 1
                 else:
-                    sr = roll_status_success(inflict=int(s.status_inflict), resist=int(resist.value))
+                    inflict = int(s.status_inflict) + _sum_status_inflict_mod(bs, actor)
+                    resist_val = int(resist.value) + _sum_status_resist_mod(bs, tgt)
+                    sr = roll_status_success(inflict=inflict, resist=resist_val)
                     events.append(
                         f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
-                        f"inflict={s.status_inflict} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
+                        f"inflict={inflict} resist={resist_val} resistible=True roll={sr.roll} success={sr.success}"
                     )
                     if sr.success:
                         prev = bs.combatants[tgt].effects.get(eff, 0)
@@ -350,10 +369,12 @@ class BattleEngine:
                     )
                     events.append(f"DISPEL_FAILED: {tgt} keeps {eff}")
                 else:
-                    sr = roll_status_success(inflict=int(DISPEL_INFLICT), resist=int(resist.value))
+                    inflict = int(DISPEL_INFLICT) + _sum_status_inflict_mod(bs, actor)
+                    resist_val = int(resist.value) + _sum_status_resist_mod(bs, tgt)
+                    sr = roll_status_success(inflict=inflict, resist=resist_val)
                     events.append(
                         f"DISPEL_CHECK: {actor}->{tgt} effect={eff} "
-                        f"inflict={DISPEL_INFLICT} resist={resist.value} resistible=True roll={sr.roll} success={sr.success}"
+                        f"inflict={inflict} resist={resist_val} resistible=True roll={sr.roll} success={sr.success}"
                     )
                     if sr.success:
                         # success=True => '걸린다' => 해제 실패
