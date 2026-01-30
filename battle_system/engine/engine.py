@@ -97,19 +97,23 @@ class BattleEngine:
         self._reset_turn_slots(bs, bs.current_actor_id())
         return bs
 
-    def end_turn(self, bs: BattleState) -> None:
+    def end_turn(self, bs: BattleState) -> EngineOutcome:
         """
         턴 종료:
         - tick += 1  (전역 tick)
+        - DoT/HoT 등 주기 효과 적용
         - 모든 전투 참가자의 cooldown/effects를 1 감소 (0 이하면 제거)
         - 다음 액터로 넘어감
         - 슬롯 리셋
         """
         bs.tick += 1
+        events = self._apply_periodic_effects(bs)
         self._tick_decrement_all(bs)
 
         bs.turn_index = (bs.turn_index + 1) % len(bs.turn_order)
         self._reset_turn_slots(bs, bs.current_actor_id())
+
+        return EngineOutcome(events=events)
 
     def apply_skill(self, bs: BattleState, skill: Skill, *, reaction_hit_penalty: int = 5) -> EngineOutcome:
         """
@@ -278,6 +282,54 @@ class BattleEngine:
                 return False, "Curse: magic or apply_effect skill blocked"
 
         return True, ""
+    
+    def _apply_periodic_effects(self, bs: BattleState) -> list[str]:
+        """
+        Phase 27: DoT/HoT 적용(단순 나머지 방식)
+
+        - Turn-based (출혈/중독):
+            bs.tick % participant_count == 1
+        - Tick-based (부패):
+            bs.tick % 3 == 1
+        """
+        events: list[str] = []
+
+        n = len(bs.turn_order)
+        if n <= 0:
+            return events
+
+        turn_boundary = (bs.tick % n == 1)
+        decay_boundary = (bs.tick % 3 == 1)
+
+        for cid, st in bs.combatants.items():
+            if st.hp <= 0:
+                continue
+
+            # --- turn-based ---
+            if turn_boundary:
+                if st.effects.get("Bleeding", 0) > 0:
+                    before = st.hp
+                    st.hp = max(0, before - 1)
+                    events.append(
+                        f"DOT_TICK: tick={bs.tick} cid={cid} effect=Bleeding dmg=1 hp={before}->{st.hp}"
+                    )
+
+                if st.effects.get("Poisoned", 0) > 0:
+                    before = st.hp
+                    st.hp = max(0, before - 1)
+                    events.append(
+                        f"DOT_TICK: tick={bs.tick} cid={cid} effect=Poisoned dmg=1 hp={before}->{st.hp}"
+                    )
+
+            # --- tick-based ---
+            if decay_boundary and st.effects.get("Decay", 0) > 0:
+                before = st.hp
+                st.hp = max(0, before - 2)
+                events.append(
+                    f"DOT_TICK: tick={bs.tick} cid={cid} effect=Decay dmg=2 hp={before}->{st.hp}"
+                )
+
+        return events
 
     def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, reaction_hit_penalty: int, crit_stat: CritStat) -> tuple[int, list[str]]:
         events: list[str] = []
