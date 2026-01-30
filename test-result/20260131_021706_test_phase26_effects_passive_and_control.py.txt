@@ -1,0 +1,614 @@
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_attacker_hit_effects_apply_and_expire[Confusion--20]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 공격자(attacker)에게 걸린 상태이상이 HIT 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: HIT -20
+    - Fear: HIT -10
+    - Blind: HIT -40
+    - Slow: HIT -10
+
+    시나리오:
+    - baseline indices 측정
+    - attacker에 effect를 ticks=1로 부여
+    - hit가 baseline + delta_hit 인지 확인
+    - end_turn 1회 => effect 삭제
+    - hit가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_attacker_hit_effects_apply_and_expire[Fear--10]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 공격자(attacker)에게 걸린 상태이상이 HIT 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: HIT -20
+    - Fear: HIT -10
+    - Blind: HIT -40
+    - Slow: HIT -10
+
+    시나리오:
+    - baseline indices 측정
+    - attacker에 effect를 ticks=1로 부여
+    - hit가 baseline + delta_hit 인지 확인
+    - end_turn 1회 => effect 삭제
+    - hit가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_attacker_hit_effects_apply_and_expire[Blind--40]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 공격자(attacker)에게 걸린 상태이상이 HIT 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: HIT -20
+    - Fear: HIT -10
+    - Blind: HIT -40
+    - Slow: HIT -10
+
+    시나리오:
+    - baseline indices 측정
+    - attacker에 effect를 ticks=1로 부여
+    - hit가 baseline + delta_hit 인지 확인
+    - end_turn 1회 => effect 삭제
+    - hit가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_attacker_hit_effects_apply_and_expire[Slow--10]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 공격자(attacker)에게 걸린 상태이상이 HIT 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: HIT -20
+    - Fear: HIT -10
+    - Blind: HIT -40
+    - Slow: HIT -10
+
+    시나리오:
+    - baseline indices 측정
+    - attacker에 effect를 ticks=1로 부여
+    - hit가 baseline + delta_hit 인지 확인
+    - end_turn 1회 => effect 삭제
+    - hit가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_evade_effects_apply_and_expire[Confusion--5]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에게 걸린 상태이상이 EVADE 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: EVADE -5
+    - Fear: EVADE -50
+    - Slow: EVADE -10
+    - Bind: EVADE -50
+
+    시나리오:
+    - baseline indices 측정
+    - defender에 effect ticks=1 부여
+    - evade가 baseline + delta_evade 인지 확인
+    - end_turn 1회 => effect 삭제
+    - evade가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_evade_effects_apply_and_expire[Fear--50]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에게 걸린 상태이상이 EVADE 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: EVADE -5
+    - Fear: EVADE -50
+    - Slow: EVADE -10
+    - Bind: EVADE -50
+
+    시나리오:
+    - baseline indices 측정
+    - defender에 effect ticks=1 부여
+    - evade가 baseline + delta_evade 인지 확인
+    - end_turn 1회 => effect 삭제
+    - evade가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_evade_effects_apply_and_expire[Slow--10]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에게 걸린 상태이상이 EVADE 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: EVADE -5
+    - Fear: EVADE -50
+    - Slow: EVADE -10
+    - Bind: EVADE -50
+
+    시나리오:
+    - baseline indices 측정
+    - defender에 effect ticks=1 부여
+    - evade가 baseline + delta_evade 인지 확인
+    - end_turn 1회 => effect 삭제
+    - evade가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_evade_effects_apply_and_expire[Bind--50]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에게 걸린 상태이상이 EVADE 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: EVADE -5
+    - Fear: EVADE -50
+    - Slow: EVADE -10
+    - Bind: EVADE -50
+
+    시나리오:
+    - baseline indices 측정
+    - defender에 effect ticks=1 부여
+    - evade가 baseline + delta_evade 인지 확인
+    - end_turn 1회 => effect 삭제
+    - evade가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Burned--10-STR]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Frostbite--10-STR]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Frozen--15-STR]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Burned--10-INT]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Frostbite--10-INT]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Frozen--15-INT]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Stun--5-STR]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Stun-0-INT]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Paralysis-0-STR]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Paralysis--5-INT]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Corruption-0-STR]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_weak_weight_effects_apply_and_expire[Corruption--15-INT]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에 걸린 상태이상이 "약공 피격 지수"에 반영되는지 검증한다.
+              구현상 defender의 crit.weak 가중치에 delta가 합산되는 것으로 테스트한다.
+
+    검증 대상(표 기준):
+    - Burned: 약공 피격 -10 (항상)
+    - Frostbite: 약공 피격 -10 (항상)
+    - Frozen: 약공 피격 -15 (항상)
+    - Stun: 물리 약공 피격 -5 (crit_stat STR/AGI일 때만)
+    - Paralysis: 마법 약공 피격 -5 (crit_stat INT/WIS일 때만)
+    - Corruption: 마법 약공 피격 -15 (crit_stat INT/WIS일 때만)
+
+    시나리오:
+    - baseline crit.weak 측정
+    - defender에 effect ticks=1 부여
+    - crit_stat 조건에 따라 weak가 baseline + delta_weak 인지 확인
+    - end_turn 1회 => effect 삭제
+    - weak가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_weakness_increases_attacker_weak_on_physical_only_and_expires
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] Weakness:
+      - 자신의 물리 공격에 대한 약공 지수 +20
+      - 즉, attacker가 Weakness일 때 crit_stat이 STR/AGI인 공격에서만
+        attacker의 crit.weak 가중치가 +20 되어야 한다.
+
+    시나리오:
+    - baseline(STR)과 baseline(INT)의 attacker weak를 각각 측정
+    - attacker에 Weakness ticks=1 부여
+    - STR에서는 weak +20, INT에서는 변화 없음
+    - end_turn 1회로 삭제되면 두 경우 모두 baseline으로 복귀
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_action_blocking_effects_block_any_skill[Stun]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 행동 불가 상태이상은 어떤 스킬이든 사용을 막아야 한다.
+    대상:
+    - Stun / Paralysis / Frozen
+
+    시나리오:
+    - actor(A)에 effect ticks=2 부여
+    - '간단 데미지 스킬' 시전 시도
+    기대:
+    - SKILL_BLOCKED_BY_EFFECT 이벤트가 발생
+    - target HP 변화 없음 (실제 step 적용이 일어나지 않음)
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_action_blocking_effects_block_any_skill[Paralysis]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 행동 불가 상태이상은 어떤 스킬이든 사용을 막아야 한다.
+    대상:
+    - Stun / Paralysis / Frozen
+
+    시나리오:
+    - actor(A)에 effect ticks=2 부여
+    - '간단 데미지 스킬' 시전 시도
+    기대:
+    - SKILL_BLOCKED_BY_EFFECT 이벤트가 발생
+    - target HP 변화 없음 (실제 step 적용이 일어나지 않음)
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_action_blocking_effects_block_any_skill[Frozen]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 행동 불가 상태이상은 어떤 스킬이든 사용을 막아야 한다.
+    대상:
+    - Stun / Paralysis / Frozen
+
+    시나리오:
+    - actor(A)에 effect ticks=2 부여
+    - '간단 데미지 스킬' 시전 시도
+    기대:
+    - SKILL_BLOCKED_BY_EFFECT 이벤트가 발생
+    - target HP 변화 없음 (실제 step 적용이 일어나지 않음)
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_bind_blocks_move_skills_but_allows_non_move
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] Bind:
+      - 이동이 포함된 스킬 사용 불가
+      - 그리고 EVADE -50(지수 보정형)은 별도 테스트에서 검증됨
+
+    시나리오:
+    - actor(A)에 Bind ticks=2 부여
+    - non-move 스킬은 막히지 않아야 함
+    - move 스킬(MOVE step 포함)은 막혀야 함
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_oblivion_blocks_multi_step_only
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] Oblivion:
+      - 2스텝 이상 스킬 사용 불가
+
+    시나리오:
+    - actor(A)에 Oblivion ticks=2
+    - 1-step 스킬은 허용
+    - 2-step 스킬은 차단
+
+
+============================================================
+[FAIL] tests/test_phase26_effects_passive_and_control.py::test_phase26_curse_blocks_magic_attack_with_apply_effect_but_not_others
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] Curse:
+      - "마법 공격" + "상태이상 부여 포함" 스킬 사용 불가
+      - 아래는 막히면 안 됨:
+        (1) 마법 공격이지만 APPLY_EFFECT 없는 스킬
+        (2) APPLY_EFFECT는 있지만 물리 공격(crit_stat=STR/AGI) 스킬
+
+    시나리오:
+    - actor(A)에 Curse ticks=2
+    - (막힘) magic + apply_effect
+    - (허용) magic + no apply_effect
+    - (허용) physical + apply_effect
+
+
+[TRACEBACK]
+def test_phase26_curse_blocks_magic_attack_with_apply_effect_but_not_others():
+        """
+        [Phase 26] Curse:
+          - "마법 공격" + "상태이상 부여 포함" 스킬 사용 불가
+          - 아래는 막히면 안 됨:
+            (1) 마법 공격이지만 APPLY_EFFECT 없는 스킬
+            (2) APPLY_EFFECT는 있지만 물리 공격(crit_stat=STR/AGI) 스킬
+    
+        시나리오:
+        - actor(A)에 Curse ticks=2
+        - (막힘) magic + apply_effect
+        - (허용) magic + no apply_effect
+        - (허용) physical + apply_effect
+        """
+        # (blocked) magic + apply_effect
+        eng1, bs1, A1, E1 = _mk_engine_1v1()
+        _set_effect(bs1, A1, "Curse", ticks=2)
+        out1 = eng1.apply_skill(bs1, _magic_apply_effect_skill(A1, E1, action_type="MAIN"))
+        assert _is_blocked(out1)
+    
+        # (allowed) magic + no apply_effect
+        eng2, bs2, A2, E2 = _mk_engine_1v1()
+        _set_effect(bs2, A2, "Curse", ticks=2)
+        out2 = eng2.apply_skill(bs2, _simple_damage_skill(A2, E2, action_type="MAIN", crit_stat="INT"))
+        assert not _is_blocked(out2)
+    
+        # (allowed) physical + apply_effect
+        eng3, bs3, A3, E3 = _mk_engine_1v1()
+        _set_effect(bs3, A3, "Curse", ticks=2)
+>       out3 = eng3.apply_skill(bs3, _physical_apply_effect_skill(A3, E3, action_type="MAIN"))
+
+tests\test_phase26_effects_passive_and_control.py:476: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+battle_system\engine\engine.py:163: in apply_skill
+    prev, step_events = self._apply_step(
+battle_system\engine\engine.py:365: in _apply_step
+    resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+    def compute_status_resist_index(
+        *,
+        stats: Stats,
+        status_id: StatusID,
+    ) -> StatusResistIndex:
+        """
+        상태이상 저항 지수 계산.
+    
+        공식:
+          저항 = CON + (보조 스탯 * 0.5)
+          - 보조 스탯이 없는 경우: CON * 1.5
+          - 소수점은 버림
+          - 즉사(INSTANT_DEATH)는 저항 불가
+    
+        ⚠ 이 함수는 '저항 지수 계산'만 담당한다.
+           실제 부여/해제 성공 여부는 checks.roll_status_success에서 처리.
+        """
+        if status_id not in STATUS_RESIST_STAT:
+>           raise ValueError(f"Unknown status_id: {status_id}")
+E           ValueError: Unknown status_id: Blind
+
+battle_system\rules\indices\status.py:93: ValueError

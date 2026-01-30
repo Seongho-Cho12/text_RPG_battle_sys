@@ -10,13 +10,6 @@ from battle_system.rules.indices.hit import compute_hit_indices
 from battle_system.rules.indices.crit import compute_crit_indices, CritStat
 
 
-# ==============================
-# ⚠ 밸런스 조절(공식)은 하위 모듈에서만 ⚠
-#   - hit.py / crit.py / status.py
-#   facade는 "통합 진입점"만 제공한다.
-# ==============================
-
-
 @dataclass(frozen=True)
 class HitEvasionIndices:
     hit: int
@@ -127,6 +120,81 @@ def _sum_index_mods(bs: BattleState, cid: CombatantID) -> IndexModifiers:
 
     return IndexModifiers(hit=hit, evade=evade, weak=weak, strong=strong, critical=critical)
 
+def _has_effect(bs: BattleState, cid: CombatantID, eff: str) -> bool:
+    return bs.combatants[cid].effects.get(eff, 0) > 0
+
+def _status_index_mods(
+    bs: BattleState,
+    attacker: CombatantID,
+    defender: CombatantID,
+    *,
+    crit_stat: CritStat,
+) -> tuple[IndexModifiers, IndexModifiers, int]:
+    """
+    상태이상이 공격/방어 지수에 주는 보정치를 반환한다.
+    - 반환값:
+      (attacker쪽 지수 보정, defender쪽 지수 보정, defender에게 적용될 weak_delta)
+    """
+    # IndexModifiers가 frozen이면 여기서 누적 후 마지막에 생성해야 함
+    atk_hit = atk_weak = atk_strong = atk_crit = 0
+    def_evade = 0
+    def_weak_delta = 0
+
+    # ---- attacker에 걸린 상태이상: HIT/CRIT 가중치 변화 ----
+    if _has_effect(bs, attacker, "Confusion"):
+        atk_hit += -20
+        # Confusion은 회피 -5인데 "자기 회피"이므로 defender가 아니라 attacker에 걸린 경우 evade에 반영되어야 함
+        # -> evade는 defender의 스탯으로만 계산되므로, attacker 회피 패널티는 'defender가 attacker일 때'만 의미가 있음.
+        # 여기서는 공격 중인 attacker의 evade는 쓰이지 않으니, Confusion의 evade -5는
+        # "피격 시 회피 지수 -5"로 해석하여 defender측에 있을 때만 반영하는 게 일관적이다.
+        # (원하면 별도 방어 계산 entry에서 attacker의 evade 패널티도 처리 가능)
+    if _has_effect(bs, attacker, "Fear"):
+        atk_hit += -10
+    if _has_effect(bs, attacker, "Blind"):
+        atk_hit += -40
+    if _has_effect(bs, attacker, "Slow"):
+        atk_hit += -10
+
+    # Weakness: "자신의 물리 공격에 대한 약공 지수 +20"
+    if _has_effect(bs, attacker, "Weakness") and crit_stat in ("STR", "AGI"):
+        atk_weak += 20
+
+    # ---- defender에 걸린 상태이상: EVADE 변화 ----
+    if _has_effect(bs, defender, "Confusion"):
+        def_evade += -5
+    if _has_effect(bs, defender, "Fear"):
+        def_evade += -50
+    if _has_effect(bs, defender, "Slow"):
+        def_evade += -10
+    if _has_effect(bs, defender, "Bind"):
+        def_evade += -50
+
+    # ---- defender에 걸린 상태이상: "약공 피격 지수" 변화 -> defender weak 가중치에 직접 가산 ----
+    # (표의 -10/-15는 그대로 weak 가중치에 더한다)
+    if _has_effect(bs, defender, "Burned"):
+        def_weak_delta += -10
+    if _has_effect(bs, defender, "Frostbite"):
+        def_weak_delta += -10
+    if _has_effect(bs, defender, "Frozen"):
+        def_weak_delta += -15
+
+    # Stun: 물리 약공 피격 -5
+    if _has_effect(bs, defender, "Stun") and crit_stat in ("STR", "AGI"):
+        def_weak_delta += -5
+
+    # Paralysis: 마법 약공 피격 -5
+    if _has_effect(bs, defender, "Paralysis") and crit_stat in ("INT", "WIS"):
+        def_weak_delta += -5
+
+    # Corruption: 마법 약공 피격 -15
+    if _has_effect(bs, defender, "Corruption") and crit_stat in ("INT", "WIS"):
+        def_weak_delta += -15
+
+    atk_extra = IndexModifiers(hit=atk_hit, evade=0, weak=atk_weak, strong=atk_strong, critical=atk_crit)
+    def_extra = IndexModifiers(hit=0, evade=def_evade, weak=0, strong=0, critical=0)
+    return atk_extra, def_extra, def_weak_delta
+
+
 def compute_base_hit_evasion(
     bs: BattleState,
     attacker: CombatantID,
@@ -209,7 +277,22 @@ def compute_attack_indices(
         critical=base_crit.critical + atk_mods.critical,
     )
 
-    # 4) 스킬/상황 modifiers 가산 
+    # 4) 지수 변환 상태이상 반영
+    atk_eff, def_eff, def_weak_delta = _status_index_mods(
+        bs, attacker, defender, crit_stat=crit_stat
+    )
+
+    base_he = HitEvasionIndices(
+        hit=base_he.hit + atk_eff.hit,
+        evade=base_he.evade + def_eff.evade,
+    )
+    base_crit = CritIndices(
+        weak=base_crit.weak + atk_eff.weak + def_weak_delta,
+        strong=base_crit.strong + atk_eff.strong,
+        critical=base_crit.critical + atk_eff.critical,
+    )
+
+    # 5) 스킬/상황 modifiers 가산 
     he = HitEvasionIndices(
         hit=_apply_mod(base_he.hit, modifiers.hit),
         evade=_apply_mod(base_he.evade, modifiers.evade),

@@ -138,8 +138,16 @@ class BattleEngine:
             left = bs.combatants[actor].cooldowns.get(skill.skill_id, 0)
             if left > 0:
                 raise ValueError(f"Skill on cooldown: {skill.skill_id} (ticks_left={left})")
+            
+        # 3) 상태이상에 의한 스킬 사용 불가 체크
+        ok, reason = self._can_use_skill_due_to_effects(bs, actor, skill)
+        if not ok:
+            # 기존 Outcome 생성 방식에 맞춰 반환값만 맞춰줘
+            events = []
+            events.append(f"SKILL_BLOCKED_BY_EFFECT: actor={actor} skill={skill.skill_id} reason={reason}")
+            return EngineOutcome(events=events)
 
-        # 3) step 실행
+        # 4) step 실행
         steps = skill.steps or []
         prev: int = 1  # 첫 step은 기본 실행 가능
         for s in steps:
@@ -213,6 +221,63 @@ class BattleEngine:
                     if m.ticks_left > 0:
                         new_list.append(m)
                 st.modifiers = new_list
+
+    def _has_effect(self, bs: BattleState, cid: CombatantID, eff: str) -> bool:
+        return bs.combatants[cid].effects.get(eff, 0) > 0
+
+
+    def _skill_has_move(self, skill) -> bool:
+        # MOVE 계열 step kind를 정확히 쓰면 더 좋지만, 지금은 안전하게 startswith로 처리
+        for s in skill.steps:
+            if isinstance(s.kind, str) and s.kind.startswith("MOVE"):
+                return True
+            if s.kind == "MOVE":
+                return True
+        return False
+
+
+    def _skill_has_apply_effect(self, skill) -> bool:
+        for s in skill.steps:
+            if s.kind == "APPLY_EFFECT":
+                return True
+        return False
+
+
+    def _is_magic_skill(self, skill) -> bool:
+        crit_stat = getattr(skill, "crit_stat", "STR")
+        return crit_stat in ("INT", "WIS")
+
+
+    def _can_use_skill_due_to_effects(self, bs: BattleState, actor: CombatantID, skill) -> tuple[bool, str]:
+        """
+        Phase 26 컨트롤/제한 상태이상 적용.
+        - Stun/Paralysis/Frozen: 행동 불가
+        - Bind: 이동 포함 스킬 사용 불가
+        - Curse: 마법 공격 + 상태이상 부여 포함 스킬 사용 불가
+        - Oblivion: 2스텝 이상 스킬 사용 불가
+        """
+        # 행동 불가
+        if self._has_effect(bs, actor, "Stun"):
+            return False, "Stun: action blocked"
+        if self._has_effect(bs, actor, "Paralysis"):
+            return False, "Paralysis: action blocked"
+        if self._has_effect(bs, actor, "Frozen"):
+            return False, "Frozen: action blocked"
+
+        # Bind: 이동 포함 스킬 금지
+        if self._has_effect(bs, actor, "Bind") and self._skill_has_move(skill):
+            return False, "Bind: move skill blocked"
+
+        # Oblivion: 2스텝 이상 스킬 금지
+        if self._has_effect(bs, actor, "Oblivion") and len(skill.steps) >= 2:
+            return False, "Oblivion: multi-step skill blocked"
+
+        # Curse: "마법 공격" or "상태이상 부여 포함" 스킬 금지
+        if self._has_effect(bs, actor, "Curse"):
+            if self._is_magic_skill(skill) or self._skill_has_apply_effect(skill):
+                return False, "Curse: magic or apply_effect skill blocked"
+
+        return True, ""
 
     def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, reaction_hit_penalty: int, crit_stat: CritStat) -> tuple[int, list[str]]:
         events: list[str] = []
