@@ -36,21 +36,21 @@ class BattleConfig:
     enemy_group_id: GroupID = GroupID(1)
 
     
-def _sum_status_inflict_mod(bs: BattleState, cid: CombatantID) -> int:
-    st = bs.combatants[cid]
-    s = 0
-    for m in st.modifiers:
-        if m.key == "STATUS_INFLICT":
-            s += int(m.delta)
-    return s
+# def _sum_status_inflict_mod(bs: BattleState, cid: CombatantID) -> int:
+#     st = bs.combatants[cid]
+#     s = 0
+#     for m in st.modifiers:
+#         if m.key == "STATUS_INFLICT":
+#             s += int(m.delta)
+#     return s
 
-def _sum_status_resist_mod(bs: BattleState, cid: CombatantID) -> int:
-    st = bs.combatants[cid]
-    s = 0
-    for m in st.modifiers:
-        if m.key == "STATUS_RESIST":
-            s += int(m.delta)
-    return s
+# def _sum_status_resist_mod(bs: BattleState, cid: CombatantID) -> int:
+#     st = bs.combatants[cid]
+#     s = 0
+#     for m in st.modifiers:
+#         if m.key == "STATUS_RESIST":
+#             s += int(m.delta)
+#     return s
 
 
 class BattleEngine:
@@ -331,6 +331,23 @@ class BattleEngine:
 
         return events
 
+    def _sum_status_tag_mod(self, bs: BattleState, cid: CombatantID, *, key: ModifierKey, status_id: str) -> int:
+        """
+        STATUS_RESIST / STATUS_INFLICT modifier 합산.
+        - tag가 status_id와 동일하거나 "ALL"인 것만 합산.
+        """
+        st = bs.combatants[cid]
+        total = 0
+        for m in st.modifiers:
+            if m.key != key:
+                continue
+            tag = getattr(m, "status_tag", None)
+            if tag is None:
+                continue
+            if tag == "ALL" or tag == status_id:
+                total += int(m.delta)
+        return total
+
     def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, reaction_hit_penalty: int, crit_stat: CritStat) -> tuple[int, list[str]]:
         events: list[str] = []
         prev_gid = bs.combatants[actor].group_id
@@ -416,24 +433,33 @@ class BattleEngine:
             for tgt in targets:
                 resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
 
+                base_inflict = int(s.status_inflict)
+                base_resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
+
+                inflict_bonus = self._sum_status_tag_mod(bs, actor, key="STATUS_INFLICT", status_id=eff)
+                resist_bonus = self._sum_status_tag_mod(bs, tgt, key="STATUS_RESIST", status_id=eff)
+
                 if not resist.resistible:
                     prev = bs.combatants[tgt].effects.get(eff, 0)
                     bs.combatants[tgt].effects[eff] = prev + dur_ticks
                     events.append(
                         f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
-                        f"inflict={s.status_inflict} resist=NA resistible=False roll=NA success=True"
+                        f"inflict={base_inflict}+{inflict_bonus} "
+                        f"resist=NA resistible=False roll=NA success=True"
                     )
                     events.append(
                         f"EFFECT_APPLIED: {tgt} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})"
                     )
                     success_any = 1
                 else:
-                    inflict = int(s.status_inflict) + _sum_status_inflict_mod(bs, actor)
-                    resist_val = int(resist.value) + _sum_status_resist_mod(bs, tgt)
-                    sr = roll_status_success(inflict=inflict, resist=resist_val)
+                    sr = roll_status_success(
+                        inflict=base_inflict + inflict_bonus,
+                        resist=int(base_resist.value) + resist_bonus,
+                    )
                     events.append(
                         f"STATUS_CHECK: {actor}->{tgt} effect={eff} "
-                        f"inflict={inflict} resist={resist_val} resistible=True roll={sr.roll} success={sr.success}"
+                        f"inflict={base_inflict}+{inflict_bonus} "
+                        f"resist={base_resist.value}+{resist_bonus} resistible=True roll={sr.roll} success={sr.success}"
                     )
                     if sr.success:
                         prev = bs.combatants[tgt].effects.get(eff, 0)
@@ -477,6 +503,7 @@ class BattleEngine:
                     continue
 
                 resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
+                resist_bonus = self._sum_status_tag_mod(bs, tgt, key="STATUS_RESIST", status_id=eff)
 
                 if not resist.resistible:
                     # 저항 불가 => 해제 불가(자동 실패)
@@ -486,12 +513,13 @@ class BattleEngine:
                     )
                     events.append(f"DISPEL_FAILED: {tgt} keeps {eff}")
                 else:
-                    inflict = int(DISPEL_INFLICT) + _sum_status_inflict_mod(bs, actor)
-                    resist_val = int(resist.value) + _sum_status_resist_mod(bs, tgt)
-                    sr = roll_status_success(inflict=inflict, resist=resist_val)
+                    sr = roll_status_success(
+                        inflict=int(DISPEL_INFLICT),
+                        resist=int(resist.value) + resist_bonus,
+                    )
                     events.append(
                         f"DISPEL_CHECK: {actor}->{tgt} effect={eff} "
-                        f"inflict={inflict} resist={resist_val} resistible=True roll={sr.roll} success={sr.success}"
+                        f"inflict={DISPEL_INFLICT} resist={resist.value}+{resist_bonus} resistible=True roll={sr.roll} success={sr.success}"
                     )
                     if sr.success:
                         # success=True => '걸린다' => 해제 실패
@@ -530,15 +558,22 @@ class BattleEngine:
 
             for tgt in targets:
                 mid = uuid.uuid4().hex
+                tag = None
+                if s.modifier_key in ("STATUS_RESIST", "STATUS_INFLICT"):
+                    if not getattr(s, "modifier_status_tag", None):
+                        raise ValueError("APPLY_MODIFIER: STATUS_RESIST/STATUS_INFLICT requires modifier_status_tag ('ALL' or StatusID)")
+                    tag = str(s.modifier_status_tag)
                 mi = ModifierInstance(
                     mid=mid,
                     key=s.modifier_key,
                     delta=int(s.modifier_delta),
                     ticks_left=dur_ticks,
+                    status_tag=tag,
                 )
                 bs.combatants[tgt].modifiers.append(mi)
                 events.append(
-                    f"MOD_APPLIED: {tgt} mid={mid} key={s.modifier_key} delta={mi.delta} turns={s.modifier_duration} ticks={dur_ticks}"
+                    f"MOD_APPLIED: {tgt} mid={mid} key={s.modifier_key} delta={mi.delta} "
+                    f"turns={s.modifier_duration} ticks={dur_ticks} tag={tag}"
                 )
                 applied_any = 1
 

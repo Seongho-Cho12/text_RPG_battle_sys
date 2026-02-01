@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass
-from typing import Optional, Literal
+from typing import Optional, Literal, Union
 
 from battle_system.core.models import Stats
 
@@ -29,6 +29,8 @@ StatusID = Literal[
     "FROZEN",
     "OBLIVION",
 ]
+
+StatusTag = Union[Literal["ALL"], StatusID]
 
 ResistStat = Optional[Literal["STR", "AGI", "INT", "WIS"]]
 

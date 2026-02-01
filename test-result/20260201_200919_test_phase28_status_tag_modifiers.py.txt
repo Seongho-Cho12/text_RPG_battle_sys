@@ -1,0 +1,200 @@
+============================================================
+[FAIL] tests/test_phase28_status_tag_modifiers.py::test_phase28_specific_status_resist_applies_only_to_matching_effect
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 28] STATUS_RESIST(tag=BLEEDING) 보정은 BLEEDING 굴림에만 적용,
+              POISONED 굴림에는 적용되면 안 된다.
+
+
+[TRACEBACK]
+def test_phase28_specific_status_resist_applies_only_to_matching_effect():
+        """
+        [Phase 28] STATUS_RESIST(tag=BLEEDING) 보정은 BLEEDING 굴림에만 적용,
+                  POISONED 굴림에는 적용되면 안 된다.
+        """
+        eng, bs, A, E = _mk_engine_1v1()
+    
+        _advance_to_actor(eng, bs, A)
+        eng.apply_skill(bs, _skill_apply_status_modifier(A, E, action_type="MAIN", key="STATUS_RESIST", delta=50, tag="BLEEDING"))
+    
+        # 턴 넘겨서 다시 A 차례로
+        _advance_to_actor(eng, bs, A)
+>       out_p = eng.apply_skill(bs, _skill_apply_effect(A, E, action_type="MAIN", eff="POISONED"))
+
+tests\test_phase28_status_tag_modifiers.py:174: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+battle_system\engine\engine.py:134: in apply_skill
+    self._use_main(bs, actor)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <battle_system.engine.engine.BattleEngine object at 0x00000232BBA2CD40>
+bs = BattleState(defs={'A': CharacterDef(cid='A', name='A', level=10, stats=Stats(str=10, agi=10, con=10, int=10, wis=10, c... flags=set())}, turn_order=['A', 'E'], turn_index=0, tick=0, groups={0: ['A'], 1: ['E']}, ended=False, end_reason=None), actor = 'A'
+
+    def _use_main(self, bs: BattleState, actor: CombatantID) -> None:
+        self._assert_my_turn(bs, actor)
+        st = bs.combatants[actor]
+        if not st.can_main:
+>           raise ValueError("Main action already used this turn.")
+E           ValueError: Main action already used this turn.
+
+battle_system\engine\engine.py:191: ValueError
+============================================================
+[FAIL] tests/test_phase28_status_tag_modifiers.py::test_phase28_all_status_resist_applies_to_every_effect
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 28] STATUS_RESIST(tag=ALL) 보정은 모든 effect 굴림에 적용되어야 한다.
+
+
+[TRACEBACK]
+def test_phase28_all_status_resist_applies_to_every_effect():
+        """
+        [Phase 28] STATUS_RESIST(tag=ALL) 보정은 모든 effect 굴림에 적용되어야 한다.
+        """
+        eng, bs, A, E = _mk_engine_1v1()
+    
+        _advance_to_actor(eng, bs, A)
+        eng.apply_skill(bs, _skill_apply_status_modifier(A, E, action_type="MAIN", key="STATUS_RESIST", delta=7, tag="ALL"))
+    
+        _advance_to_actor(eng, bs, A)
+>       out_p = eng.apply_skill(bs, _skill_apply_effect(A, E, action_type="MAIN", eff="POISONED"))
+
+tests\test_phase28_status_tag_modifiers.py:194: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+battle_system\engine\engine.py:134: in apply_skill
+    self._use_main(bs, actor)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <battle_system.engine.engine.BattleEngine object at 0x00000232BBA2C260>
+bs = BattleState(defs={'A': CharacterDef(cid='A', name='A', level=10, stats=Stats(str=10, agi=10, con=10, int=10, wis=10, c... flags=set())}, turn_order=['A', 'E'], turn_index=0, tick=0, groups={0: ['A'], 1: ['E']}, ended=False, end_reason=None), actor = 'A'
+
+    def _use_main(self, bs: BattleState, actor: CombatantID) -> None:
+        self._assert_my_turn(bs, actor)
+        st = bs.combatants[actor]
+        if not st.can_main:
+>           raise ValueError("Main action already used this turn.")
+E           ValueError: Main action already used this turn.
+
+battle_system\engine\engine.py:191: ValueError
+============================================================
+[FAIL] tests/test_phase28_status_tag_modifiers.py::test_phase28_all_and_specific_resist_stack
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 28] STATUS_RESIST(tag=ALL) + STATUS_RESIST(tag=BLEEDING)가 누적되어야 한다.
+
+
+[TRACEBACK]
+def test_phase28_all_and_specific_resist_stack():
+        """
+        [Phase 28] STATUS_RESIST(tag=ALL) + STATUS_RESIST(tag=BLEEDING)가 누적되어야 한다.
+        """
+        eng, bs, A, E = _mk_engine_1v1()
+    
+        _advance_to_actor(eng, bs, A)
+        eng.apply_skill(bs, _skill_apply_status_modifier(A, E, action_type="MAIN", key="STATUS_RESIST", delta=10, tag="ALL"))
+    
+        _advance_to_actor(eng, bs, A)
+>       eng.apply_skill(bs, _skill_apply_status_modifier(A, E, action_type="MAIN", key="STATUS_RESIST", delta=20, tag="BLEEDING"))
+
+tests\test_phase28_status_tag_modifiers.py:214: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+battle_system\engine\engine.py:134: in apply_skill
+    self._use_main(bs, actor)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <battle_system.engine.engine.BattleEngine object at 0x00000232BBA2EC60>
+bs = BattleState(defs={'A': CharacterDef(cid='A', name='A', level=10, stats=Stats(str=10, agi=10, con=10, int=10, wis=10, c... flags=set())}, turn_order=['A', 'E'], turn_index=0, tick=0, groups={0: ['A'], 1: ['E']}, ended=False, end_reason=None), actor = 'A'
+
+    def _use_main(self, bs: BattleState, actor: CombatantID) -> None:
+        self._assert_my_turn(bs, actor)
+        st = bs.combatants[actor]
+        if not st.can_main:
+>           raise ValueError("Main action already used this turn.")
+E           ValueError: Main action already used this turn.
+
+battle_system\engine\engine.py:191: ValueError
+============================================================
+[FAIL] tests/test_phase28_status_tag_modifiers.py::test_phase28_specific_status_inflict_applies_only_to_matching_effect
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 28] STATUS_INFLICT(tag=POISONED) 보정은 POISONED 부여 굴림에만 적용,
+              BLEEDING 굴림에는 적용되면 안 된다.
+
+
+[TRACEBACK]
+def test_phase28_specific_status_inflict_applies_only_to_matching_effect():
+        """
+        [Phase 28] STATUS_INFLICT(tag=POISONED) 보정은 POISONED 부여 굴림에만 적용,
+                  BLEEDING 굴림에는 적용되면 안 된다.
+        """
+        eng, bs, A, E = _mk_engine_1v1()
+    
+        _advance_to_actor(eng, bs, A)
+        eng.apply_skill(bs, _skill_apply_status_modifier(A, A, action_type="MAIN", key="STATUS_INFLICT", delta=15, tag="POISONED"))
+    
+        _advance_to_actor(eng, bs, A)
+>       out_p = eng.apply_skill(bs, _skill_apply_effect(A, E, action_type="MAIN", eff="POISONED"))
+
+tests\test_phase28_status_tag_modifiers.py:238: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+battle_system\engine\engine.py:134: in apply_skill
+    self._use_main(bs, actor)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <battle_system.engine.engine.BattleEngine object at 0x00000232BBA2F6B0>
+bs = BattleState(defs={'A': CharacterDef(cid='A', name='A', level=10, stats=Stats(str=10, agi=10, con=10, int=10, wis=10, c... flags=set())}, turn_order=['A', 'E'], turn_index=0, tick=0, groups={0: ['A'], 1: ['E']}, ended=False, end_reason=None), actor = 'A'
+
+    def _use_main(self, bs: BattleState, actor: CombatantID) -> None:
+        self._assert_my_turn(bs, actor)
+        st = bs.combatants[actor]
+        if not st.can_main:
+>           raise ValueError("Main action already used this turn.")
+E           ValueError: Main action already used this turn.
+
+battle_system\engine\engine.py:191: ValueError
+============================================================
+[PASS] tests/test_phase28_status_tag_modifiers.py::test_phase28_apply_modifier_requires_tag_for_status_keys
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 28] APPLY_MODIFIER에서 STATUS_RESIST/STATUS_INFLICT이면 tag가 없으면 ValueError.
+
+
+============================================================
+[FAIL] tests/test_phase28_status_tag_modifiers.py::test_phase28_remove_effect_uses_matching_status_resist_bonus_in_log
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 28] REMOVE_EFFECT(디스펠 체크)에서도 matching STATUS_RESIST(tag=effect or ALL)만 합산되어야 한다.
+
+
+[TRACEBACK]
+def test_phase28_remove_effect_uses_matching_status_resist_bonus_in_log():
+        """
+        [Phase 28] REMOVE_EFFECT(디스펠 체크)에서도 matching STATUS_RESIST(tag=effect or ALL)만 합산되어야 한다.
+        """
+        eng, bs, A, E = _mk_engine_1v1()
+    
+        # effect exists so REMOVE_EFFECT won't noop
+        bs.combatants[E].effects["BLEEDING"] = 3
+    
+        _advance_to_actor(eng, bs, A)
+        eng.apply_skill(bs, _skill_apply_status_modifier(A, E, action_type="MAIN", key="STATUS_RESIST", delta=12, tag="BLEEDING"))
+    
+        _advance_to_actor(eng, bs, A)
+>       out = eng.apply_skill(bs, _skill_remove_effect(A, E, action_type="MAIN", eff="BLEEDING"))
+
+tests\test_phase28_status_tag_modifiers.py:273: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+battle_system\engine\engine.py:134: in apply_skill
+    self._use_main(bs, actor)
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ 
+
+self = <battle_system.engine.engine.BattleEngine object at 0x00000232BC32C0B0>
+bs = BattleState(defs={'A': CharacterDef(cid='A', name='A', level=10, stats=Stats(str=10, agi=10, con=10, int=10, wis=10, c... flags=set())}, turn_order=['A', 'E'], turn_index=0, tick=0, groups={0: ['A'], 1: ['E']}, ended=False, end_reason=None), actor = 'A'
+
+    def _use_main(self, bs: BattleState, actor: CombatantID) -> None:
+        self._assert_my_turn(bs, actor)
+        st = bs.combatants[actor]
+        if not st.can_main:
+>           raise ValueError("Main action already used this turn.")
+E           ValueError: Main action already used this turn.
+
+battle_system\engine\engine.py:191: ValueError

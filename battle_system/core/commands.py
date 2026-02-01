@@ -48,6 +48,7 @@ class Step:
     modifier_key: Optional[str] = None      # ModifierKey 문자열
     modifier_delta: Optional[int] = None    # 정수(± 가능)
     modifier_duration: Optional[int] = None # ✅ "턴" 단위 (엔진이 tick으로 변환)
+    modifier_status_tag: Optional[str] = None # 상태이상 관련 태그
 
     # hp delta(즉시 반영) payload
     hp_delta: Optional[int] = None          # 정수(± 가능), duration 없음

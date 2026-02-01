@@ -3,6 +3,7 @@ from dataclasses import dataclass, field
 from typing import Dict, List, Optional, Literal
 
 from battle_system.core.types import CombatantID, GroupID, TeamID, AttackRange
+# from battle_system.rules.indices.status import StatusTag
 
 ModifierKey = Literal[
     "WEAK", "STRONG", "CRITICAL",
@@ -43,6 +44,7 @@ class ModifierInstance:
     key: ModifierKey
     delta: int
     ticks_left: int
+    status_tag: Optional[str] = None
 
 
 @dataclass
