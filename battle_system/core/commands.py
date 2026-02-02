@@ -4,6 +4,7 @@ from dataclasses import dataclass
 from typing import Optional, Literal, List
 from battle_system.core.types import CombatantID
 from battle_system.rules.indices.crit import CritStat
+from battle_system.rules.indices.facade import IndexModifiers
 
 
 StepKind = Literal[
@@ -55,6 +56,9 @@ class Step:
 
     # 이전 Step 조건 필요치
     require_prev_gte: int = 0
+
+    # instant(스텝 단발성) 공격 지수 보정
+    attack_modifiers: IndexModifiers = IndexModifiers()
 
 
 @dataclass(frozen=True)

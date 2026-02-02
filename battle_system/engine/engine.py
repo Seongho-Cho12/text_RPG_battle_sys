@@ -330,6 +330,11 @@ class BattleEngine:
                 )
 
         return events
+    
+    def _apply_instant_death(self, bs: BattleState, *, actor: CombatantID, tgt: CombatantID, events: list[str]) -> None:
+        before = bs.combatants[tgt].hp
+        bs.combatants[tgt].hp = 0
+        events.append(f"INSTANT_DEATH: {actor}->{tgt} hp={before}->0")
 
     def _sum_status_tag_mod(self, bs: BattleState, cid: CombatantID, *, key: ModifierKey, status_id: str) -> int:
         """
@@ -393,8 +398,10 @@ class BattleEngine:
             outcome_rank = {"EVADE": 0, "WEAK": 1, "STRONG": 2, "CRITICAL": 3}
             best = 0
 
+            mods = getattr(s, "attack_modifiers", IndexModifiers())
+
             for tgt in targets:
-                r = basic_attack(bs, attacker=actor, defender=tgt, modifiers=IndexModifiers(), crit_stat=crit_stat)
+                r = basic_attack(bs, attacker=actor, defender=tgt, modifiers=mods, crit_stat=crit_stat)
                 outcome = r["outcome"]
                 events.append(f"STEP: ATTACK {actor}->{tgt} outcome={outcome} dmg={r['damage']}")
                 best = max(best, int(outcome_rank.get(outcome, 0)))
@@ -450,6 +457,7 @@ class BattleEngine:
                     events.append(
                         f"EFFECT_APPLIED: {tgt} +{eff}(turns={s.effect_duration}, ticks=+{dur_ticks}, total_ticks={prev + dur_ticks})"
                     )
+                    self._apply_instant_death(bs, actor=actor, tgt=tgt, events=events)
                     success_any = 1
                 else:
                     sr = roll_status_success(
