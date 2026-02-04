@@ -255,31 +255,31 @@ class BattleEngine:
     def _can_use_skill_due_to_effects(self, bs: BattleState, actor: CombatantID, skill) -> tuple[bool, str]:
         """
         Phase 26 컨트롤/제한 상태이상 적용.
-        - Stun/Paralysis/Frozen: 행동 불가
-        - Bind: 이동 포함 스킬 사용 불가
-        - Curse: 마법 공격 + 상태이상 부여 포함 스킬 사용 불가
-        - Oblivion: 2스텝 이상 스킬 사용 불가
+        - STUN/PARALYSIS/FROZEN: 행동 불가
+        - BIND: 이동 포함 스킬 사용 불가
+        - CURSE: 마법 공격 + 상태이상 부여 포함 스킬 사용 불가
+        - OBLIVION: 2스텝 이상 스킬 사용 불가
         """
         # 행동 불가
-        if self._has_effect(bs, actor, "Stun"):
-            return False, "Stun: action blocked"
-        if self._has_effect(bs, actor, "Paralysis"):
-            return False, "Paralysis: action blocked"
-        if self._has_effect(bs, actor, "Frozen"):
-            return False, "Frozen: action blocked"
+        if self._has_effect(bs, actor, "STUN"):
+            return False, "STUN: action blocked"
+        if self._has_effect(bs, actor, "PARALYSIS"):
+            return False, "PARALYSIS: action blocked"
+        if self._has_effect(bs, actor, "FROZEN"):
+            return False, "FROZEN: action blocked"
 
-        # Bind: 이동 포함 스킬 금지
-        if self._has_effect(bs, actor, "Bind") and self._skill_has_move(skill):
-            return False, "Bind: move skill blocked"
+        # BIND: 이동 포함 스킬 금지
+        if self._has_effect(bs, actor, "BIND") and self._skill_has_move(skill):
+            return False, "BIND: move skill blocked"
 
-        # Oblivion: 2스텝 이상 스킬 금지
-        if self._has_effect(bs, actor, "Oblivion") and len(skill.steps) >= 2:
-            return False, "Oblivion: multi-step skill blocked"
+        # OBLIVION: 2스텝 이상 스킬 금지
+        if self._has_effect(bs, actor, "OBLIVION") and len(skill.steps) >= 2:
+            return False, "OBLIVION: multi-step skill blocked"
 
-        # Curse: "마법 공격" or "상태이상 부여 포함" 스킬 금지
-        if self._has_effect(bs, actor, "Curse"):
+        # CURSE: "마법 공격" or "상태이상 부여 포함" 스킬 금지
+        if self._has_effect(bs, actor, "CURSE"):
             if self._is_magic_skill(skill) or self._skill_has_apply_effect(skill):
-                return False, "Curse: magic or apply_effect skill blocked"
+                return False, "CURSE: magic or apply_effect skill blocked"
 
         return True, ""
     
@@ -307,26 +307,26 @@ class BattleEngine:
 
             # --- turn-based ---
             if turn_boundary:
-                if st.effects.get("Bleeding", 0) > 0:
+                if st.effects.get("BLEEDING", 0) > 0:
                     before = st.hp
                     st.hp = max(0, before - 1)
                     events.append(
-                        f"DOT_TICK: tick={bs.tick} cid={cid} effect=Bleeding dmg=1 hp={before}->{st.hp}"
+                        f"DOT_TICK: tick={bs.tick} cid={cid} effect=BLEEDING dmg=1 hp={before}->{st.hp}"
                     )
 
-                if st.effects.get("Poisoned", 0) > 0:
+                if st.effects.get("POISONED", 0) > 0:
                     before = st.hp
                     st.hp = max(0, before - 1)
                     events.append(
-                        f"DOT_TICK: tick={bs.tick} cid={cid} effect=Poisoned dmg=1 hp={before}->{st.hp}"
+                        f"DOT_TICK: tick={bs.tick} cid={cid} effect=POISONED dmg=1 hp={before}->{st.hp}"
                     )
 
             # --- tick-based ---
-            if decay_boundary and st.effects.get("Decay", 0) > 0:
+            if decay_boundary and st.effects.get("DECAY", 0) > 0:
                 before = st.hp
                 st.hp = max(0, before - 2)
                 events.append(
-                    f"DOT_TICK: tick={bs.tick} cid={cid} effect=Decay dmg=2 hp={before}->{st.hp}"
+                    f"DOT_TICK: tick={bs.tick} cid={cid} effect=DECAY dmg=2 hp={before}->{st.hp}"
                 )
 
         return events
