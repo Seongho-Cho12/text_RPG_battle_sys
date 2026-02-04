@@ -292,7 +292,15 @@ def compute_attack_indices(
         critical=base_crit.critical + atk_eff.critical,
     )
 
-    # 5) 스킬/상황 modifiers 가산 
+    # 5) STEALTH: 공격 시 치명타 지수 +3
+    if _has_effect(bs, attacker, "STEALTH"):
+        base_crit = CritIndices(
+            weak=base_crit.weak,
+            strong=base_crit.strong,
+            critical=base_crit.critical + 3,
+        )
+
+    # 6) 스킬/상황 modifiers 가산 
     he = HitEvasionIndices(
         hit=_apply_mod(base_he.hit, modifiers.hit),
         evade=_apply_mod(base_he.evade, modifiers.evade),

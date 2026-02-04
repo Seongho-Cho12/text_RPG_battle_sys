@@ -352,6 +352,35 @@ class BattleEngine:
             if tag == "ALL" or tag == status_id:
                 total += int(m.delta)
         return total
+    
+    def _sum_mod(self, bs: BattleState, cid: CombatantID, *, key: ModifierKey) -> int:
+        total = 0
+        for m in bs.combatants[cid].modifiers:
+            if m.key == key:
+                total += int(m.delta)
+        return total
+    
+    def _effective_stat(self, bs: BattleState, cid: CombatantID, stat: str) -> int:
+        base = getattr(bs.defs[cid].stats, stat.lower())  # "agi" / "wis"
+        delta = 0
+        for m in bs.combatants[cid].modifiers:
+            if m.key == stat:
+                delta += int(m.delta)
+        return max(0, int(base + delta))
+
+    def _enemy_wis_avg_with_resist(self, bs: BattleState, actor: CombatantID, *, resist_key: ModifierKey) -> int:
+        actor_team = bs.combatants[actor].team
+        enemies = [cid for cid, st in bs.combatants.items() if st.team != actor_team and not st.is_down]
+        if not enemies:
+            return 0
+
+        vals = []
+        for e in enemies:
+            wis = self._effective_stat(bs, e, "WIS")
+            wis += self._sum_mod(bs, e, key=resist_key)  # 개인별 resist mod
+            vals.append(wis)
+
+        return int(sum(vals) / len(vals))  # 내림 평균
 
     def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, reaction_hit_penalty: int, crit_stat: CritStat) -> tuple[int, list[str]]:
         events: list[str] = []
@@ -365,8 +394,11 @@ class BattleEngine:
             engage(bs, actor=actor, target=s.target)
             events.append(f"STEP: MOVE_ENGAGE {actor}->{s.target}")
 
+            stealth = bs.combatants[actor].effects.get("STEALTH", 0) > 0
+            reaction_immune = s.reaction_immune or stealth
+
             cands = reaction_attack_candidates(
-                bs, mover=actor, prev_group_id=prev_gid, reaction_immune=s.reaction_immune
+                bs, mover=actor, prev_group_id=prev_gid, reaction_immune=reaction_immune
             )
             events.extend(self._run_reactions(bs, mover=actor, cands=cands, reaction_hit_penalty=reaction_hit_penalty))
 
@@ -374,8 +406,11 @@ class BattleEngine:
             new_gid = disengage(bs, actor=actor)
             events.append(f"STEP: MOVE_DISENGAGE {actor} -> new_group={new_gid}")
 
+            stealth = bs.combatants[actor].effects.get("STEALTH", 0) > 0
+            reaction_immune = s.reaction_immune or stealth
+
             cands = reaction_attack_candidates(
-                bs, mover=actor, prev_group_id=prev_gid, reaction_immune=s.reaction_immune
+                bs, mover=actor, prev_group_id=prev_gid, reaction_immune=reaction_immune
             )
             events.extend(self._run_reactions(bs, mover=actor, cands=cands, reaction_hit_penalty=reaction_hit_penalty))
 
@@ -402,6 +437,9 @@ class BattleEngine:
 
             for tgt in targets:
                 r = basic_attack(bs, attacker=actor, defender=tgt, modifiers=mods, crit_stat=crit_stat)
+                if bs.combatants[actor].effects.get("STEALTH", 0) > 0 and r.get("hit", False):
+                    del bs.combatants[actor].effects["STEALTH"]
+                    events.append(f"STEALTH_BROKEN: {actor} (hit_success)")
                 outcome = r["outcome"]
                 events.append(f"STEP: ATTACK {actor}->{tgt} outcome={outcome} dmg={r['damage']}")
                 best = max(best, int(outcome_rank.get(outcome, 0)))
@@ -616,6 +654,98 @@ class BattleEngine:
                 events.append(f"HP_DELTA: {tgt} {before}->{after} (delta={int(s.hp_delta)})")
 
             result = 1
+        
+        elif s.kind == "TACTICAL_STEALTH":
+            if s.effect_duration is None:
+                raise ValueError("TACTICAL_STEALTH requires effect_duration(turns)")
+
+            inflict = self._effective_stat(bs, actor, "AGI") + self._sum_mod(bs, actor, key="STEALTH_INFLICT")
+            resist  = self._enemy_wis_avg_with_resist(bs, actor, resist_key="STEALTH_RESIST")
+
+            sr = roll_status_success(inflict=inflict, resist=resist)
+            events.append(f"STEALTH_CHECK: actor={actor} inflict={inflict} resist={resist} roll={sr.roll} success={sr.success}")
+
+            if sr.success:
+                dur_ticks = turns_to_ticks_for_battle(bs, int(s.effect_duration))
+                prev = bs.combatants[actor].effects.get("STEALTH", 0)
+                bs.combatants[actor].effects["STEALTH"] = prev + dur_ticks
+                events.append(f"STEALTH_APPLIED: {actor} turns={s.effect_duration} ticks=+{dur_ticks} total_ticks={prev+dur_ticks}")
+                result = 1
+            else:
+                result = 0
+
+        elif s.kind == "TACTICAL_ESCAPE":
+            inflict = (
+                self._effective_stat(bs, actor, "AGI")
+                + self._effective_stat(bs, actor, "WIS")
+                + self._sum_mod(bs, actor, key="ESCAPE_INFLICT")
+            )
+            if bs.combatants[actor].effects.get("STEALTH", 0) > 0:
+                inflict += 10
+
+            resist = self._enemy_wis_avg_with_resist(bs, actor, resist_key="ESCAPE_RESIST")
+
+            sr = roll_status_success(inflict=inflict, resist=resist)
+            events.append(f"ESCAPE_CHECK: actor={actor} inflict={inflict} resist={resist} roll={sr.roll} success={sr.success}")
+
+            if sr.success:
+                bs.ended = True
+                bs.end_reason = "ESCAPE"
+                events.append("BATTLE_ENDED: ESCAPE")
+                result = 1
+            else:
+                result = 0
+            
+        elif s.kind == "TACTICAL_DETECT_STEALTH":
+            # target은 1명만 의미있음(감지는 개인 지정)
+            if s.target is None:
+                return 0, ["DETECT_STEALTH: missing target"]
+
+            tgt = s.target
+
+            # 타겟이 다운/없음 방어
+            if tgt not in bs.combatants or bs.combatants[tgt].is_down:
+                events.append(f"DETECT_STEALTH: invalid target {tgt}")
+                return 0, events
+
+            # 타겟이 은신 상태가 아니면 감지 시도할 필요 없음
+            if bs.combatants[tgt].effects.get("STEALTH", 0) <= 0:
+                events.append(f"DETECT_STEALTH: target {tgt} not stealth")
+                return 0, events
+
+            same_group = (bs.combatants[actor].group_id == bs.combatants[tgt].group_id)
+
+            tgt_agi = self._effective_stat(bs, tgt, "AGI")
+            # inflict: 타겟(은신자) 기준
+            base_inflict = (tgt_agi // 2) if same_group else tgt_agi
+            inflict = base_inflict + self._sum_mod(bs, tgt, key="STEALTH_INFLICT")
+
+            # resist: 시전자(감지자) 기준
+            actor_wis = self._effective_stat(bs, actor, "WIS")
+            base_resist = int(actor_wis * 1.5)
+            resist = base_resist + self._sum_mod(bs, actor, key="STEALTH_RESIST")
+
+            sr = roll_status_success(inflict=inflict, resist=resist)
+
+            # success=True  => 은신 성공(감지 실패)
+            # success=False => 은신 실패(감지 성공)  <-- REMOVE_EFFECT와 동일한 반전 구조
+            if not sr.success:
+                # 감지 성공: 은신 해제
+                del bs.combatants[tgt].effects["STEALTH"]
+                events.append(
+                    f"DETECT_STEALTH_CHECK: actor={actor} target={tgt} same_group={same_group} "
+                    f"inflict={inflict} resist={resist} roll={sr.roll} stealth_success={sr.success}",
+                    f"DETECT_STEALTH_SUCCESS: target={tgt} stealth_removed",
+                )
+                return 1, events
+            else:
+                events.append(
+                    f"DETECT_STEALTH_CHECK: actor={actor} target={tgt} same_group={same_group} "
+                    f"inflict={inflict} resist={resist} roll={sr.roll} stealth_success={sr.success}",
+                    f"DETECT_STEALTH_FAIL: target={tgt} remains_stealth",
+                )
+                return 0, events
+
 
 
         else:

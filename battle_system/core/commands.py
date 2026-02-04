@@ -15,6 +15,10 @@ StepKind = Literal[
     "REMOVE_EFFECT",         # 정화/해제(판정 후 해제, 없으면 no-op)
     "APPLY_MODIFIER",        # 지속형 수치 수정(항상 성공, 중첩은 인스턴스 append)
     "APPLY_HP_DELTA",        # 현재 HP 즉시 변화(항상 성공, clamp)
+    "TACTICAL_STEALTH",
+    "TACTICAL_ESCAPE",
+    "TACTICAL_DETECT_STEALTH",
+    # "TACTICAL_THROW"  # 투척은 다음 단계에서 추가
 ]
 
 ActionType = Literal["MAIN", "SUB"]
