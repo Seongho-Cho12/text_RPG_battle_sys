@@ -18,7 +18,7 @@ StepKind = Literal[
     "TACTICAL_STEALTH",
     "TACTICAL_ESCAPE",
     "TACTICAL_DETECT_STEALTH",
-    # "TACTICAL_THROW"  # 투척은 다음 단계에서 추가
+    "TACTICAL_THROW"
 ]
 
 ActionType = Literal["MAIN", "SUB"]
@@ -63,6 +63,8 @@ class Step:
 
     # instant(스텝 단발성) 공격 지수 보정
     attack_modifiers: IndexModifiers = IndexModifiers()
+
+    throw_item_id: Optional[str] = None  # 소비할 item_id
 
 
 @dataclass(frozen=True)

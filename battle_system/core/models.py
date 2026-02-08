@@ -15,6 +15,8 @@ ModifierKey = Literal[
     "ESCAPE_INFLICT", "ESCAPE_RESIST",
 ]
 
+ItemWeight = Literal[0, 1, 2, 4, 8, 16]
+
 
 @dataclass(frozen=True)
 class Stats:
@@ -34,6 +36,11 @@ class CharacterDef:
     stats: Stats
     max_hp: int
     basic_attack_range: AttackRange = "MELEE"
+
+@dataclass(frozen=True)
+class ItemDef:
+    item_id: str
+    weight: ItemWeight
 
 
 @dataclass
@@ -100,6 +107,14 @@ class BattleState:
     tick: int = 0
 
     groups: Dict[GroupID, List[CombatantID]] = field(default_factory=dict)
+
+    items: Dict[str, ItemDef] = field(default_factory=dict)
+
+    # 전투 시작 시점 인벤토리 스냅샷(전투 중 소모/획득은 여기서만 처리)
+    inventory_snapshot: Dict[CombatantID, Dict[str, int]] = field(default_factory=dict)
+
+    # 전투 종료 후 스토리 반영용 델타(투척이면 -1 기록)
+    inventory_delta: Dict[CombatantID, Dict[str, int]] = field(default_factory=dict)
 
     ended: bool = False
     end_reason: Optional[str] = None

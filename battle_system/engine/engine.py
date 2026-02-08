@@ -381,6 +381,41 @@ class BattleEngine:
             vals.append(wis)
 
         return int(sum(vals) / len(vals))  # 내림 평균
+    
+    def _throw_instant_mods(self, bs: BattleState, actor: CombatantID, weight: int) -> IndexModifiers:
+        # 가능하면 유효 STR(스탯 modifier 반영) 사용
+        str_stat = bs.defs[actor].stats.str  # 최소 버전: 지금 구조에 맞게 접근
+        q = int(str_stat / 4)
+
+        if weight == 0:
+            return IndexModifiers(hit=-5, weak=30)
+        if weight == 1:
+            return IndexModifiers(weak=10)
+        if weight == 2:
+            return IndexModifiers()
+        if weight == 4:
+            return IndexModifiers(weak=-10)
+        if weight == 8:
+            return IndexModifiers(hit=(-10 + q), weak=-10, critical=2)
+        if weight == 16:
+            return IndexModifiers(hit=(-25 + q), weak=-20, critical=5)
+
+        raise ValueError(f"invalid throw weight: {weight}")
+    
+    def _inv_delta_add(self, bs, cid, item_id, delta):
+        d = bs.inventory_delta.setdefault(cid, {})
+        d[item_id] = d.get(item_id, 0) + delta
+        if d[item_id] == 0:
+            del d[item_id]
+
+    def _inv_snapshot_consume_one(self, bs, cid, item_id) -> bool:
+        inv = bs.inventory_snapshot.get(cid, {})
+        if inv.get(item_id, 0) <= 0:
+            return False
+        inv[item_id] -= 1
+        if inv[item_id] <= 0:
+            del inv[item_id]
+        return True
 
     def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, reaction_hit_penalty: int, crit_stat: CritStat) -> tuple[int, list[str]]:
         events: list[str] = []
@@ -737,16 +772,71 @@ class BattleEngine:
                     f"inflict={inflict} resist={resist} roll={sr.roll} stealth_success={sr.success}",
                     f"DETECT_STEALTH_SUCCESS: target={tgt} stealth_removed",
                 )
-                return 1, events
+                result = 1
             else:
                 events.append(
                     f"DETECT_STEALTH_CHECK: actor={actor} target={tgt} same_group={same_group} "
                     f"inflict={inflict} resist={resist} roll={sr.roll} stealth_success={sr.success}",
                     f"DETECT_STEALTH_FAIL: target={tgt} remains_stealth",
                 )
+                result = 0
+            
+        elif s.kind == "TACTICAL_THROW":
+            if not s.throw_item_id:
+                events.append("THROW: missing throw_item_id")
                 return 0, events
 
+            item_id = s.throw_item_id
 
+            if item_id not in bs.items:
+                events.append(f"THROW: unknown item_id {item_id}")
+                return 0, events
+
+            # ✅ 사거리 체크(근/원/무관)
+            if not self._check_range(bs, actor=actor, anchor=anchor, s=s):
+                events.append(f"OUT_OF_RANGE: ATTACK actor={actor} anchor={anchor} range={s.range} area={s.area}")
+                return 0, events
+
+            # ✅ 범위 확장(SINGLE/GROUP/ALL)
+            targets = self._resolve_targets(bs, anchor=anchor, s=s)
+            if not targets:
+                events.append(f"NO_TARGETS: ATTACK actor={actor} anchor={anchor} range={s.range} area={s.area}")
+                return 0, events
+            
+            if not self._inv_snapshot_consume_one(bs, actor, item_id):
+                events.append(f"THROW: item not available {item_id}")
+                return 0, events
+            
+            self._inv_delta_add(bs, actor, item_id, -1)
+
+            w = bs.items[item_id].weight
+            throw_mods = self._throw_instant_mods(bs, actor, w)
+
+            step_mods = s.attack_modifiers or IndexModifiers()
+            combined = IndexModifiers(
+                hit=throw_mods.hit + step_mods.hit,
+                evade=throw_mods.evade + step_mods.evade,
+                weak=throw_mods.weak + step_mods.weak,
+                strong=throw_mods.strong + step_mods.strong,
+                critical=throw_mods.critical + step_mods.critical,
+            )
+
+            events.append(f"THROW_CONSUME: actor={actor} item={item_id} weight={w} mods={combined}")
+            outcome_rank = {"EVADE": 0, "WEAK": 1, "STRONG": 2, "CRITICAL": 3}
+            best = 0
+
+            mods = getattr(s, "attack_modifiers", IndexModifiers())
+
+            for tgt in targets:
+                r = basic_attack(bs, attacker=actor, defender=tgt, modifiers=combined, crit_stat="STR")
+                if bs.combatants[actor].effects.get("STEALTH", 0) > 0 and r.get("hit", False):
+                    del bs.combatants[actor].effects["STEALTH"]
+                    events.append(f"STEALTH_BROKEN: {actor} (hit_success)")
+                outcome = r["outcome"]
+                events.append(f"STEP: THROW_ATTACK {actor}->{tgt} outcome={outcome} dmg={r['damage']}")
+                best = max(best, int(outcome_rank.get(outcome, 0)))
+
+            result = best
 
         else:
             raise ValueError(f"Unknown Step.kind: {s.kind}")
