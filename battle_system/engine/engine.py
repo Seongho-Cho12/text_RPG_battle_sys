@@ -113,6 +113,8 @@ class BattleEngine:
         bs.turn_index = (bs.turn_index + 1) % len(bs.turn_order)
         self._reset_turn_slots(bs, bs.current_actor_id())
 
+        self._check_battle_end(bs)
+
         return EngineOutcome(events=events)
 
     def apply_skill(self, bs: BattleState, skill: Skill, *, reaction_hit_penalty: int = 5) -> EngineOutcome:
@@ -162,8 +164,13 @@ class BattleEngine:
                 )
                 events.append("CHAIN_BREAK")
                 break
+            
+            # 2) 전투가 종료되었는지 확인
+            self._check_battle_end(bs)
+            if bs.ended:
+                break
 
-            # 2) step 실행 -> result(정수) + events
+            # 3) step 실행 -> result(정수) + events
             prev, step_events = self._apply_step(
                 bs, actor=actor, s=s, reaction_hit_penalty=reaction_hit_penalty, crit_stat=skill.crit_stat
             )
@@ -416,6 +423,22 @@ class BattleEngine:
         if inv[item_id] <= 0:
             del inv[item_id]
         return True
+    
+    def _check_battle_end(self, bs: BattleState) -> None:
+        if bs.ended:
+            return  # ESCAPE 등 이미 종료된 경우 유지
+
+        any_ally_alive = any(st.team == "ALLY" and not st.is_down for st in bs.combatants.values())
+        any_enemy_alive = any(st.team == "ENEMY" and not st.is_down for st in bs.combatants.values())
+
+        if not any_enemy_alive and any_ally_alive:
+            bs.ended = True
+            bs.end_reason = "ALLY_VICTORY"
+            return
+        if not any_ally_alive and any_enemy_alive:
+            bs.ended = True
+            bs.end_reason = "ENEMY_VICTORY"
+            return
 
     def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, reaction_hit_penalty: int, crit_stat: CritStat) -> tuple[int, list[str]]:
         events: list[str] = []

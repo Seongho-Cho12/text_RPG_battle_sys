@@ -116,6 +116,8 @@ class BattleState:
     # 전투 종료 후 스토리 반영용 델타(투척이면 -1 기록)
     inventory_delta: Dict[CombatantID, Dict[str, int]] = field(default_factory=dict)
 
+    xp_reward_total: int = 0
+
     ended: bool = False
     end_reason: Optional[str] = None
 
@@ -124,3 +126,17 @@ class BattleState:
 
     def current_actor(self) -> CombatantState:
         return self.combatants[self.current_actor_id()]
+
+@dataclass(frozen=True)
+class BattleDelta:
+    """스토리에 커밋할 변화량(Phase 32 최소)."""
+    hp_after: Dict[CombatantID, int]
+    inventory_delta: Dict[CombatantID, Dict[str, int]]  # item_id -> +/- count
+
+
+@dataclass(frozen=True)
+class BattleResult:
+    ended: bool
+    end_reason: Optional[str]
+    delta: BattleDelta
+    events: List[str]  # 전투 로그(선택)
