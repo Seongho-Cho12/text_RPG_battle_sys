@@ -36,12 +36,18 @@ class CharacterDef:
     stats: Stats
     max_hp: int
     basic_attack_range: AttackRange = "MELEE"
+    drops: List[DropEntry] = field(default_factory=list)  # 몬스터 전용, 기본값
 
 @dataclass(frozen=True)
 class ItemDef:
     item_id: str
     weight: ItemWeight
-
+    
+@dataclass(frozen=True)
+class DropEntry:
+    item_id: str
+    chance_percent: int  # 0..100
+    weight: ItemWeight
 
 @dataclass
 class ModifierInstance:
@@ -140,3 +146,5 @@ class BattleResult:
     end_reason: Optional[str]
     delta: BattleDelta
     events: List[str]  # 전투 로그(선택)
+    xp_each_ally: int = 0
+    reward_events: List[str] = field(default_factory=list)

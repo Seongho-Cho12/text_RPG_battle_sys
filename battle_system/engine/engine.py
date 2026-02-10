@@ -117,7 +117,7 @@ class BattleEngine:
 
         return EngineOutcome(events=events)
 
-    def apply_skill(self, bs: BattleState, skill: Skill, *, reaction_hit_penalty: int = 5) -> EngineOutcome:
+    def apply_skill(self, bs: BattleState, skill: Skill) -> EngineOutcome:
         """
         스킬 단위 실행 파이프라인.
         - 슬롯(MAIN/SUB) 소모
@@ -172,7 +172,7 @@ class BattleEngine:
 
             # 3) step 실행 -> result(정수) + events
             prev, step_events = self._apply_step(
-                bs, actor=actor, s=s, reaction_hit_penalty=reaction_hit_penalty, crit_stat=skill.crit_stat
+                bs, actor=actor, s=s, crit_stat=skill.crit_stat
             )
             events.extend(step_events)
 
@@ -435,12 +435,12 @@ class BattleEngine:
             bs.ended = True
             bs.end_reason = "ALLY_VICTORY"
             return
-        if not any_ally_alive and any_enemy_alive:
+        if not any_ally_alive:
             bs.ended = True
             bs.end_reason = "ENEMY_VICTORY"
             return
 
-    def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, reaction_hit_penalty: int, crit_stat: CritStat) -> tuple[int, list[str]]:
+    def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, crit_stat: CritStat) -> tuple[int, list[str]]:
         events: list[str] = []
         prev_gid = bs.combatants[actor].group_id
         result: int = 1
@@ -458,7 +458,7 @@ class BattleEngine:
             cands = reaction_attack_candidates(
                 bs, mover=actor, prev_group_id=prev_gid, reaction_immune=reaction_immune
             )
-            events.extend(self._run_reactions(bs, mover=actor, cands=cands, reaction_hit_penalty=reaction_hit_penalty))
+            events.extend(self._run_reactions(bs, mover=actor, cands=cands, reaction_hit_penalty=s.reaction_hit_penalty))
 
         elif s.kind == "MOVE_DISENGAGE":
             new_gid = disengage(bs, actor=actor)
@@ -470,7 +470,7 @@ class BattleEngine:
             cands = reaction_attack_candidates(
                 bs, mover=actor, prev_group_id=prev_gid, reaction_immune=reaction_immune
             )
-            events.extend(self._run_reactions(bs, mover=actor, cands=cands, reaction_hit_penalty=reaction_hit_penalty))
+            events.extend(self._run_reactions(bs, mover=actor, cands=cands, reaction_hit_penalty=s.reaction_hit_penalty))
 
         elif s.kind == "ATTACK":
             # anchor/target 규칙
@@ -534,15 +534,13 @@ class BattleEngine:
             success_any = 0
 
             for tgt in targets:
-                resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
-
                 base_inflict = int(s.status_inflict)
                 base_resist = compute_status_resist_index(stats=bs.defs[tgt].stats, status_id=eff)
 
                 inflict_bonus = self._sum_status_tag_mod(bs, actor, key="STATUS_INFLICT", status_id=eff)
                 resist_bonus = self._sum_status_tag_mod(bs, tgt, key="STATUS_RESIST", status_id=eff)
 
-                if not resist.resistible:
+                if not base_resist.resistible:
                     prev = bs.combatants[tgt].effects.get(eff, 0)
                     bs.combatants[tgt].effects[eff] = prev + dur_ticks
                     events.append(
