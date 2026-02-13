@@ -55,6 +55,7 @@ def load_skill_def(path: str | Path, *, actor: str) -> Skill:
         cooldown_turns=int(d.get("cooldown_turns", 0)),
         steps=steps,
         crit_stat=d.get("crit_stat", "STR"),
+        target_filter=d.get("target_filter", "ANY"),
     )
 
 

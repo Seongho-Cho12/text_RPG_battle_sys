@@ -253,13 +253,20 @@ def _step_needs_target(s: Step) -> bool:
 
 def _compute_target_candidates_union(bs: BattleState, actor: CombatantID, sk: Skill) -> List[CombatantID]:
     """
-    Phase34(입력단) 후보 계산:
+    Phase34+35 후보 계산:
     - DOWN 제외
     - range 기반으로 최소 필터
     - area=GROUP은 anchor만 고르면 엔진이 확장하므로 후보는 SINGLE과 동일 취급
+    - Phase 35: target_filter(SELF/ALLY/ENEMY/ANY)로 최종 필터링
     """
+    tf = getattr(sk, "target_filter", "ANY")
     a_gid = bs.combatants[actor].group_id
-    alive_others = [cid for cid, st in bs.combatants.items() if (not st.is_down) and cid != actor]
+
+    # SELF/ALLY 필터 시 자기 자신도 후보 풀에 포함해야 한다
+    if tf in ("SELF", "ALLY"):
+        alive_pool = [cid for cid, st in bs.combatants.items() if not st.is_down]
+    else:
+        alive_pool = [cid for cid, st in bs.combatants.items() if (not st.is_down) and cid != actor]
 
     cands: set[CombatantID] = set()
 
@@ -268,21 +275,22 @@ def _compute_target_candidates_union(bs: BattleState, actor: CombatantID, sk: Sk
             continue
 
         if s.kind == "MOVE_ENGAGE":
-            # engage anchor 후보는 alive 상대 전체로 둔다(formation 룰은 엔진에서 처리)
-            cands.update(alive_others)
+            cands.update(alive_pool)
             continue
 
         if s.area == "ALL":
             continue
 
         if s.range == "ANY":
-            cands.update(alive_others)
+            cands.update(alive_pool)
         elif s.range == "MELEE":
-            cands.update([cid for cid in alive_others if bs.combatants[cid].group_id == a_gid])
+            cands.update([cid for cid in alive_pool if bs.combatants[cid].group_id == a_gid])
         elif s.range == "RANGED":
-            cands.update([cid for cid in alive_others if bs.combatants[cid].group_id != a_gid])
+            cands.update([cid for cid in alive_pool if bs.combatants[cid].group_id != a_gid])
 
-    return sorted(cands, key=lambda x: str(x))
+    # Phase 35: target_filter 적용
+    filtered = _filter_targets_by_skill(bs, actor, sk, sorted(cands, key=lambda x: str(x)))
+    return filtered
 
 
 def _has_invalid_range_without_anchor(sk: Skill) -> bool:
@@ -296,3 +304,26 @@ def _has_invalid_range_without_anchor(sk: Skill) -> bool:
         if s.area == "ALL" and s.target is None and s.range in ("MELEE", "RANGED"):
             return True
     return False
+
+def _filter_targets_by_skill(bs: BattleState, actor: CombatantID, sk: Skill, targets: List[CombatantID]) -> List[CombatantID]:
+    """
+    Phase 35: Skill.target_filter에 따라 후보 대상을 필터링.
+    - ANY:   제한 없음(그대로 반환)
+    - SELF:  자기 자신만
+    - ALLY:  actor와 같은 team(actor 자신 포함)
+    - ENEMY: actor와 다른 team
+
+    진영 판정은 CombatantState.team을 사용한다.
+    """
+    tf = getattr(sk, "target_filter", "ANY")
+    if tf == "ANY":
+        return targets
+    if tf == "SELF":
+        return [t for t in targets if t == actor]
+
+    actor_team = bs.combatants[actor].team
+    if tf == "ALLY":
+        return [t for t in targets if bs.combatants[t].team == actor_team]
+    if tf == "ENEMY":
+        return [t for t in targets if bs.combatants[t].team != actor_team]
+    return targets

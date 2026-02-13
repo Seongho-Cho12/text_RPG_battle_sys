@@ -24,6 +24,7 @@ StepKind = Literal[
 ActionType = Literal["MAIN", "SUB"]
 StepRange = Literal["MELEE", "RANGED", "ANY"]
 StepArea  = Literal["SINGLE", "GROUP", "ALL"]
+TargetFilter = Literal["ANY", "SELF", "ALLY", "ENEMY"]
 
 
 @dataclass(frozen=True)
@@ -83,3 +84,4 @@ class Skill:
     cooldown_turns: int = 0          # ✅ "턴" 단위 (엔진이 tick으로 변환)
     steps: List[Step] = None         # type: ignore[assignment]
     crit_stat: CritStat = "STR"
+    target_filter: TargetFilter = "ANY"
