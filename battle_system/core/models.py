@@ -1,6 +1,6 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Literal
+from typing import Dict, List, Optional, Literal, TypedDict
 
 from battle_system.core.types import CombatantID, GroupID, TeamID, AttackRange
 # from battle_system.rules.indices.status import StatusTag
@@ -14,6 +14,16 @@ ModifierKey = Literal[
     "STEALTH_INFLICT", "STEALTH_RESIST",
     "ESCAPE_INFLICT", "ESCAPE_RESIST",
 ]
+
+WeaponType = Literal[
+    "SWORD","HAMMER","AXE",
+    "DAGGER","SPEAR","BOW","RAPIER","KNUCKLE",
+    "STAFF","ORB",
+    "TOTEM","GRIMOIRE",
+]
+
+AttackProfileCrit = Literal["STR","AGI","INT","WIS"]
+AttackProfileRange = Literal["MELEE","RANGED"]
 
 ItemWeight = Literal[0, 1, 2, 4, 8, 16]
 
@@ -39,9 +49,18 @@ class CharacterDef:
     drops: List[DropEntry] = field(default_factory=list)  # 몬스터 전용, 기본값
 
 @dataclass(frozen=True)
+class AttackProfile:
+    crit_stat: AttackProfileCrit
+    range: AttackProfileRange
+
+@dataclass(frozen=True)
 class ItemDef:
     item_id: str
     weight: ItemWeight
+
+    # 아래는 registry/스키마용 (엔진은 현재 weight만 사용)
+    weapon_type: Optional[WeaponType] = None
+    attack_profile: Optional[AttackProfile] = None
     
 @dataclass(frozen=True)
 class DropEntry:

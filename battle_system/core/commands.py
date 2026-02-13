@@ -78,6 +78,7 @@ class Skill:
     skill_id: str
     name: str
     actor: CombatantID
+    allowed_weapon_types: List[str] = None
     action_type: ActionType = "MAIN"
     cooldown_turns: int = 0          # ✅ "턴" 단위 (엔진이 tick으로 변환)
     steps: List[Step] = None         # type: ignore[assignment]
