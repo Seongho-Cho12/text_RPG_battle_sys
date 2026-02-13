@@ -58,7 +58,9 @@ def run_battle_cli(
         # DOWN이면 자동 턴 종료
         if st.is_down:
             print("AUTO: actor DOWN -> end_turn")
-            bs = engine.end_turn(bs)
+            outcome = engine.end_turn(bs)
+            for e in outcome.events:
+                print("  " + e)
             continue
 
         my_skills = skills_by_actor.get(actor, [])
@@ -68,7 +70,9 @@ def run_battle_cli(
         actionable = [n for n in menu.nodes if n.kind != "END_TURN" and n.enabled]
         if not actionable:
             print("AUTO: no usable actions -> end_turn")
-            bs = engine.end_turn(bs)
+            outcome = engine.end_turn(bs)
+            for e in outcome.events:
+                print("  " + e)
             continue
 
         # 루트 메뉴 출력
@@ -78,7 +82,9 @@ def run_battle_cli(
 
         # 턴종료 단축키
         if sel.lower() == "t":
-            bs = engine.end_turn(bs)
+            outcome = engine.end_turn(bs)
+            for e in outcome.events:
+                print("  " + e)
             continue
 
         try:
@@ -94,7 +100,9 @@ def run_battle_cli(
 
         # 턴종료 노드
         if node.kind == "END_TURN":
-            bs = engine.end_turn(bs)
+            outcome = engine.end_turn(bs)
+            for e in outcome.events:
+                print("  " + e)
             continue
 
         # 아이템사용 노드
@@ -123,7 +131,10 @@ def _handle_skill_selection(
     """기본행동/고유행동 하위 스킬 선택 → 대상/아이템 입력 → 실행."""
     _print_sub_menu(node)
 
-    sel = input("Select action: ").strip()
+    sel = input("Select action (or 'b' back): ").strip()
+    if sel.lower() == "b":
+        return bs
+
     try:
         idx = int(sel)
         item = node.items[idx]
@@ -152,7 +163,12 @@ def _handle_skill_selection(
         print("\n[Throw Items]")
         for i, t in enumerate(enabled_throws):
             print(f"  [{i}] {t.item_id} x{t.quantity}")
+        print("  [b] Back")
+
         t_sel = input("Choose item: ").strip()
+        if t_sel.lower() == "b":
+            return bs
+
         try:
             throw_item_id = enabled_throws[int(t_sel)].item_id
         except (ValueError, IndexError):
@@ -174,8 +190,12 @@ def _handle_skill_selection(
             tag = "" if t.enabled else f" (DISABLED: {t.reason})"
             cst = bs.combatants[t.target_id]
             print(f"  [{i}] {t.target_id} hp={cst.hp}/{cst.max_hp}{tag}")
+        print("  [b] Back")
 
         t_sel = input("Choose target: ").strip()
+        if t_sel.lower() == "b":
+            return bs
+
         try:
             chosen_t = target_opts[int(t_sel)]
         except (ValueError, IndexError):
@@ -206,7 +226,10 @@ def _handle_item_use(
     """아이템사용 노드: 아이템 선택 → build_item_use_skill → 대상 → 실행."""
     _print_sub_menu(node)
 
-    sel = input("Select item: ").strip()
+    sel = input("Select item (or 'b' back): ").strip()
+    if sel.lower() == "b":
+        return bs
+
     try:
         idx = int(sel)
         item = node.items[idx]
@@ -246,8 +269,12 @@ def _handle_item_use(
             tag = "" if t.enabled else f" (DISABLED: {t.reason})"
             cst = bs.combatants[t.target_id]
             print(f"  [{i}] {t.target_id} hp={cst.hp}/{cst.max_hp}{tag}")
+        print("  [b] Back")
 
         t_sel = input("Choose target: ").strip()
+        if t_sel.lower() == "b":
+            return bs
+
         try:
             chosen_t = target_opts[int(t_sel)]
         except (ValueError, IndexError):
@@ -297,3 +324,4 @@ def _print_sub_menu(node: MenuNode) -> None:
     for i, item in enumerate(node.items):
         tag = "" if item.enabled else f" (DISABLED: {item.reason})"
         print(f"  [{i}] {item.label}{tag}")
+    print("  [b] Back")

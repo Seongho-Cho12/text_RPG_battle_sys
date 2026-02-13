@@ -372,6 +372,15 @@ ItemReason = Literal[
     "OK",
     "NO_STOCK",        # 수량 0
     "NO_USE_SKILL",    # use_skill 없음
+    "NO_ACTION_SLOT",  # 행동 슬롯 부족
+    "ON_COOLDOWN",     # 쿨다운
+    "BLOCKED_BY_EFFECT", # 상태이상
+    "NOT_MY_TURN",
+    "ACTOR_DOWN",
+    "MISSING_INPUT",
+    "NO_VALID_TARGET",
+    "NO_THROWABLE_ITEM",
+    "OUT_OF_RANGE",
 ]
 
 TargetReason = Literal[
@@ -407,6 +416,7 @@ def list_use_items(
     - use_skill 있고 수량 > 0: enabled
     - use_skill 없음: disabled (NO_USE_SKILL)
     - 수량 0: disabled (NO_STOCK)
+    - Phase 43: 실제 스킬 사용 가능 여부(슬롯, 쿨다운 등) 체크
     """
     snap = bs.inventory_snapshot.get(actor, {})
     out: List[ItemOption] = []
@@ -414,10 +424,26 @@ def list_use_items(
         idef = items_registry.get(item_id)
         if qty <= 0:
             out.append(ItemOption(item_id=item_id, enabled=False, reason="NO_STOCK", quantity=qty))
-        elif idef is None or idef.use_skill is None:
+            continue
+            
+        if idef is None or idef.use_skill is None:
             out.append(ItemOption(item_id=item_id, enabled=False, reason="NO_USE_SKILL", quantity=qty))
-        else:
+            continue
+
+        # Phase 43: 스킬 가용성 체크
+        sk = build_item_use_skill(actor, item_id, idef.use_skill)
+        av = get_skill_availability(bs, sk)
+        
+        if av.usable:
             out.append(ItemOption(item_id=item_id, enabled=True, reason="OK", quantity=qty))
+        else:
+            # AvailabilityReason을 ItemReason으로 매핑 (일부는 그대로 사용)
+            reason = av.reason
+            # 지원하지 않는 reason은 로그 남기거나 generic하게 처리할 수 있으나, 
+            # 현재 ItemReason에 NO_ACTION_SLOT 등을 추가했으므로 그대로 사용.
+            # 타입 시스템 만족을 위해 cast 필요할 수 있음.
+            out.append(ItemOption(item_id=item_id, enabled=False, reason=reason, quantity=qty))  # type: ignore
+
     return sorted(out, key=lambda x: x.item_id)
 
 

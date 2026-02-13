@@ -1,0 +1,55 @@
+============================================================
+[FAIL] tests/test_phase44_stealth_bug.py::test_reproduce_stealth_strike_bug
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+[TRACEBACK]
+def test_reproduce_stealth_strike_bug():
+        # 1. Setup
+        cid = CombatantID("HERO")
+        engine = BattleEngine()
+    
+        # Load actual YAML from disk to confirm file content issue
+        from pathlib import Path
+        import yaml
+    
+        skill_path = Path("D:/AI_RPG/research_1/text_RPG/game_data/characters/HERO/skills/SK_STEALTH_STRIKE.yaml")
+        if not skill_path.exists():
+            pytest.skip("SK_STEALTH_STRIKE.yaml not found")
+    
+        from battle_system.app.schema_io import load_skill_def
+        skill = load_skill_def(skill_path, actor=cid)
+        # skill.actor = cid # already set by load_skill_def
+    
+        # BattleState
+        bs = BattleState(
+            defs={cid: CharacterDef(cid, "Hero", 1, Stats(10,10,10,10,10,10), 100)},
+            combatants={},
+            turn_order=[cid],
+            turn_index=0,
+            tick=0,
+        )
+        from battle_system.engine.engine import CombatantState
+        bs.combatants[cid] = CombatantState(
+            cid=cid, team="ALLY", _hp=100, max_hp=100, group_id="A",
+            can_main=True, can_sub=True
+        )
+        # Dummy enemy
+        eid = CombatantID("ENEMY")
+        bs.combatants[eid] = CombatantState(
+            cid=eid, team="ENEMY", _hp=100, max_hp=100, group_id="B"
+        )
+    
+        # 2. Instantiate with input (Targeting Enemy for the ATTACK step)
+        # TACTICAL_STEALTH step doesn't require target, so it remains None
+        concrete = instantiate_skill_with_inputs(skill, target=eid)
+    
+        # Verify first step has target=None (simulating the bug condition)
+        assert concrete.steps[0].kind == "TACTICAL_STEALTH"
+>       assert concrete.steps[0].target is None
+E       AssertionError: assert 'SELF' is None
+E        +  where 'SELF' = Step(kind='TACTICAL_STEALTH', target='SELF', range='ANY', area='SINGLE', reaction_immune=False, reaction_hit_penalty=5... require_prev_gte=0, attack_modifiers=IndexModifiers(hit=0, evade=0, weak=0, strong=0, critical=0), throw_item_id=None).target
+
+tests\test_phase44_stealth_bug.py:63: AssertionError

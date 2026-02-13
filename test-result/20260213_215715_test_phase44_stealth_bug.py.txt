@@ -1,0 +1,16 @@
+============================================================
+[PASS] tests/test_phase44_stealth_bug.py::test_reproduce_stealth_strike_bug
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+Outcome events:
+SLOT: MAIN used by HERO
+STEALTH_CHECK: actor=HERO inflict=10 resist=10 roll=3 success=True
+STEALTH_APPLIED: HERO turns=2 ticks=+3 total_ticks=3
+STEP: ATTACK HERO->ENEMY outcome=EVADE dmg=0
+COOLDOWN_SET: HERO skill=SK_STEALTH_STRIKE turns=4 ticks=5
+
+

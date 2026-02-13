@@ -1,0 +1,12 @@
+============================================================
+[PASS] tests/test_phase43_availability_bug.py::test_reproduce_sub_slot_exhaustion_bug
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[DEBUG] Potion enabled=False, reason=NO_ACTION_SLOT
+
+
