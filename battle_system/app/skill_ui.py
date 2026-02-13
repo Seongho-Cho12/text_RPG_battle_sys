@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from typing import Dict, List, Optional, Tuple, Literal
 
 from battle_system.core.types import CombatantID
-from battle_system.core.models import BattleState, UseSkillDef
+from battle_system.core.models import BattleState, UseSkillDef, ItemDef
 from battle_system.core.commands import Skill, Step, ActionType
 
 
@@ -20,6 +20,7 @@ AvailabilityReason = Literal[
     "NO_VALID_TARGET",
     "NO_THROWABLE_ITEM",
     "OUT_OF_RANGE",
+    "NO_ITEM_STOCK",       # Phase 38: consume_item_id 아이템 수량 부족
 ]
 
 
@@ -95,6 +96,12 @@ def get_skill_availability(bs: BattleState, sk: Skill) -> SkillAvailability:
 
     # 입력 요구 계산 + 후보 계산
     spec = compute_input_spec(bs, actor, sk)
+
+    # Phase 38: consume_item_id 아이템 수량 체크
+    if sk.consume_item_id is not None:
+        snap = bs.inventory_snapshot.get(actor, {})
+        if snap.get(sk.consume_item_id, 0) <= 0:
+            return SkillAvailability(False, "NO_ITEM_STOCK", "", spec)
 
     if spec.item_required and not spec.item_candidates:
         return SkillAvailability(False, "NO_THROWABLE_ITEM", "", spec)
@@ -355,3 +362,139 @@ def build_item_use_skill(
         target_filter=use_skill_def.target_filter,
         consume_item_id=item_id,
     )
+
+
+# -----------------------------------------------------------------------------
+# Phase 38: Availability 계층 통합
+# -----------------------------------------------------------------------------
+
+ItemReason = Literal[
+    "OK",
+    "NO_STOCK",        # 수량 0
+    "NO_USE_SKILL",    # use_skill 없음
+]
+
+TargetReason = Literal[
+    "OK",
+    "DOWN",
+    "OUT_OF_RANGE",
+    "WRONG_TEAM",
+]
+
+
+@dataclass(frozen=True)
+class ItemOption:
+    item_id: str
+    enabled: bool
+    reason: ItemReason
+    quantity: int
+
+
+@dataclass(frozen=True)
+class TargetOption:
+    target_id: CombatantID
+    enabled: bool
+    reason: TargetReason
+
+
+def list_use_items(
+    bs: BattleState,
+    actor: CombatantID,
+    items_registry: Dict[str, ItemDef],
+) -> List[ItemOption]:
+    """
+    Phase 38: 인벤토리의 모든 아이템을 사용가능/불가능으로 분류.
+    - use_skill 있고 수량 > 0: enabled
+    - use_skill 없음: disabled (NO_USE_SKILL)
+    - 수량 0: disabled (NO_STOCK)
+    """
+    snap = bs.inventory_snapshot.get(actor, {})
+    out: List[ItemOption] = []
+    for item_id, qty in snap.items():
+        idef = items_registry.get(item_id)
+        if qty <= 0:
+            out.append(ItemOption(item_id=item_id, enabled=False, reason="NO_STOCK", quantity=qty))
+        elif idef is None or idef.use_skill is None:
+            out.append(ItemOption(item_id=item_id, enabled=False, reason="NO_USE_SKILL", quantity=qty))
+        else:
+            out.append(ItemOption(item_id=item_id, enabled=True, reason="OK", quantity=qty))
+    return sorted(out, key=lambda x: x.item_id)
+
+
+def list_throw_items(
+    bs: BattleState,
+    actor: CombatantID,
+) -> List[ItemOption]:
+    """
+    Phase 38: 투척 가능 아이템 목록.
+    - 수량 > 0: enabled
+    - 수량 <= 0: disabled (NO_STOCK)
+    """
+    snap = bs.inventory_snapshot.get(actor, {})
+    out: List[ItemOption] = []
+    for item_id, qty in snap.items():
+        if qty <= 0:
+            out.append(ItemOption(item_id=item_id, enabled=False, reason="NO_STOCK", quantity=qty))
+        else:
+            out.append(ItemOption(item_id=item_id, enabled=True, reason="OK", quantity=qty))
+    return sorted(out, key=lambda x: x.item_id)
+
+
+def list_target_options(
+    bs: BattleState,
+    actor: CombatantID,
+    sk: Skill,
+) -> List[TargetOption]:
+    """
+    Phase 38: 모든 전투원을 대상으로 가능/불가능 + 사유 표시.
+    - 사용 가능 후보: enabled
+    - DOWN: disabled (DOWN)
+    - target_filter 불일치: disabled (WRONG_TEAM)
+    - range 불일치: disabled (OUT_OF_RANGE)
+    """
+    valid_set = set(_compute_target_candidates_union(bs, actor, sk))
+    tf = getattr(sk, "target_filter", "ANY")
+    actor_team = bs.combatants[actor].team
+    a_gid = bs.combatants[actor].group_id
+
+    out: List[TargetOption] = []
+    for cid, st in bs.combatants.items():
+        if cid == actor and tf not in ("SELF", "ALLY"):
+            continue  # 자기 자신은 SELF/ALLY만 표시
+
+        if st.is_down:
+            out.append(TargetOption(target_id=cid, enabled=False, reason="DOWN"))
+            continue
+
+        if cid in valid_set:
+            out.append(TargetOption(target_id=cid, enabled=True, reason="OK"))
+        else:
+            # 이유 파악: team 불일치 vs range 불일치
+            reason = _determine_disable_reason(bs, actor, cid, sk, tf, actor_team, a_gid)
+            out.append(TargetOption(target_id=cid, enabled=False, reason=reason))
+
+    return sorted(out, key=lambda x: str(x.target_id))
+
+
+def _determine_disable_reason(
+    bs: BattleState,
+    actor: CombatantID,
+    target: CombatantID,
+    sk: Skill,
+    tf: str,
+    actor_team: str,
+    a_gid,
+) -> TargetReason:
+    """대상이 후보에서 제외된 이유를 판별."""
+    target_team = bs.combatants[target].team
+
+    # target_filter 불일치 체크
+    if tf == "SELF" and target != actor:
+        return "WRONG_TEAM"
+    if tf == "ALLY" and target_team != actor_team:
+        return "WRONG_TEAM"
+    if tf == "ENEMY" and target_team == actor_team:
+        return "WRONG_TEAM"
+
+    # 나머지는 range 문제
+    return "OUT_OF_RANGE"
