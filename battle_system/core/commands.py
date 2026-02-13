@@ -85,3 +85,4 @@ class Skill:
     steps: List[Step] = None         # type: ignore[assignment]
     crit_stat: CritStat = "STR"
     target_filter: TargetFilter = "ANY"
+    consume_item_id: Optional[str] = None   # Phase 37: 시도 시 소모할 아이템 ID

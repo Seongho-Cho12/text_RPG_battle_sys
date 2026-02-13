@@ -5,7 +5,7 @@ from dataclasses import dataclass, replace
 from typing import Dict, List, Optional, Tuple, Literal
 
 from battle_system.core.types import CombatantID
-from battle_system.core.models import BattleState
+from battle_system.core.models import BattleState, UseSkillDef
 from battle_system.core.commands import Skill, Step, ActionType
 
 
@@ -327,3 +327,31 @@ def _filter_targets_by_skill(bs: BattleState, actor: CombatantID, sk: Skill, tar
     if tf == "ENEMY":
         return [t for t in targets if bs.combatants[t].team != actor_team]
     return targets
+
+
+# -----------------------------------------------------------------------------
+# Phase 37: 아이템 사용 스킬 인스턴스화
+# -----------------------------------------------------------------------------
+
+def build_item_use_skill(
+    actor: CombatantID,
+    item_id: str,
+    use_skill_def: UseSkillDef,
+) -> Skill:
+    """
+    UseSkillDef(아이템 템플릿) + actor + item_id → 실행용 Skill 인스턴스.
+    - skill_id = f"USE:{item_id}"
+    - consume_item_id = item_id (엔진이 step 실행 직전에 소모)
+    - steps/crit_stat/target_filter 등은 템플릿에서 그대로 복사
+    """
+    return Skill(
+        skill_id=f"USE:{item_id}",
+        name=use_skill_def.name,
+        actor=actor,
+        action_type=use_skill_def.action_type,
+        cooldown_turns=use_skill_def.cooldown_turns,
+        steps=list(use_skill_def.steps),
+        crit_stat=use_skill_def.crit_stat,
+        target_filter=use_skill_def.target_filter,
+        consume_item_id=item_id,
+    )

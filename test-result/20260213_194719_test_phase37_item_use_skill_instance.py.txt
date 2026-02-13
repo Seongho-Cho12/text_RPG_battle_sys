@@ -1,0 +1,49 @@
+============================================================
+[PASS] tests/test_phase37_item_use_skill_instance.py::test_build_item_use_skill_basic_fields
+------------------------------------------------------------
+[EXPERIMENT]
+UseSkillDef → Skill 변환 시 필드가 정확히 매핑되는지 확인.
+
+
+============================================================
+[PASS] tests/test_phase37_item_use_skill_instance.py::test_build_item_use_skill_preserves_defaults
+------------------------------------------------------------
+[EXPERIMENT]
+UseSkillDef 기본값이 Skill로 정확히 전달되는지 확인.
+
+
+============================================================
+[PASS] tests/test_phase37_item_use_skill_instance.py::test_engine_consumes_item_on_apply_skill
+------------------------------------------------------------
+[EXPERIMENT]
+consume_item_id가 설정된 Skill 실행 시 인벤토리에서 1개 소모되어야 한다.
+
+
+============================================================
+[PASS] tests/test_phase37_item_use_skill_instance.py::test_engine_consumes_multiple_items_sequentially
+------------------------------------------------------------
+[EXPERIMENT]
+연속 사용 시 인벤토리가 올바르게 감소하고 delta가 누적되어야 한다.
+
+
+============================================================
+[PASS] tests/test_phase37_item_use_skill_instance.py::test_engine_raises_on_insufficient_item
+------------------------------------------------------------
+[EXPERIMENT]
+인벤토리에 아이템이 없으면 ValueError가 발생해야 한다.
+
+
+============================================================
+[PASS] tests/test_phase37_item_use_skill_instance.py::test_engine_does_not_consume_without_consume_item_id
+------------------------------------------------------------
+[EXPERIMENT]
+consume_item_id가 None인 일반 스킬은 아이템을 소모하지 않아야 한다.
+
+
+============================================================
+[PASS] tests/test_phase37_item_use_skill_instance.py::test_item_use_heals_and_consumes
+------------------------------------------------------------
+[EXPERIMENT]
+아이템 사용 시 HP 회복과 아이템 소모가 모두 정상 적용되어야 한다.
+
+

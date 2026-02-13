@@ -153,6 +153,18 @@ class BattleEngine:
             events.append(f"SKILL_BLOCKED_BY_EFFECT: actor={actor} skill={skill.skill_id} reason={reason}")
             return EngineOutcome(events=events)
 
+        # 3.5) Phase 37: 아이템 소모 (모든 입력 확정 후, step 실행 직전)
+        if skill.consume_item_id is not None:
+            item_id = skill.consume_item_id
+            consumed = self._inv_snapshot_consume_one(bs, actor, item_id)
+            if not consumed:
+                raise ValueError(
+                    f"Cannot consume item '{item_id}': insufficient quantity "
+                    f"(actor={actor}). UI should have prevented this."
+                )
+            self._inv_delta_add(bs, actor, item_id, -1)
+            events.append(f"ITEM_CONSUMED: actor={actor} item={item_id}")
+
         # 4) step 실행
         steps = skill.steps or []
         prev: int = 1  # 첫 step은 기본 실행 가능
