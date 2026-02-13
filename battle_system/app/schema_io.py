@@ -7,13 +7,35 @@ from typing import Any, Dict, List, Optional, Tuple
 
 import yaml  # PyYAML 필요
 
-from battle_system.core.models import CharacterDef, Stats, ItemDef, AttackProfile
+from battle_system.core.models import (
+    CharacterDef, Stats, ItemDef, AttackProfile,
+    UseSkillDef, VALID_ITEM_WEIGHTS,
+)
 from battle_system.core.commands import Skill, Step
 
 
 def _read_yaml(path: Path) -> dict:
     with path.open("r", encoding="utf-8") as f:
         return yaml.safe_load(f) or {}
+
+
+def _parse_use_skill(d: dict) -> UseSkillDef:
+    """
+    아이템 YAML의 use_skill 블록을 UseSkillDef로 변환.
+    steps는 Skill 로드와 동일한 방식으로 파싱.
+    """
+    steps = []
+    for sd in d.get("steps", []):
+        steps.append(Step(**sd))
+    return UseSkillDef(
+        skill_id=d.get("skill_id", "USE_ITEM"),
+        name=d.get("name", "Use Item"),
+        action_type=d.get("action_type", "SUB"),
+        cooldown_turns=int(d.get("cooldown_turns", 0)),
+        steps=steps,
+        crit_stat=d.get("crit_stat", "STR"),
+        target_filter=d.get("target_filter", "ANY"),
+    )
 
 
 def load_item_defs(items_dir: str | Path) -> Dict[str, ItemDef]:
@@ -23,6 +45,14 @@ def load_item_defs(items_dir: str | Path) -> Dict[str, ItemDef]:
         d = _read_yaml(p)
         item_id = d["item_id"]
         weight = int(d.get("weight", 0))
+
+        # Phase 36: weight 검증
+        if weight not in VALID_ITEM_WEIGHTS:
+            raise ValueError(
+                f"Item '{item_id}': invalid weight {weight}. "
+                f"Allowed values: {sorted(VALID_ITEM_WEIGHTS)}"
+            )
+
         weapon_type = d.get("weapon_type")
         ap = d.get("attack_profile")
         attack_profile = None
@@ -31,11 +61,19 @@ def load_item_defs(items_dir: str | Path) -> Dict[str, ItemDef]:
                 crit_stat=ap["crit_stat"],
                 range=ap["range"],
             )
+
+        # Phase 36: use_skill 파싱
+        use_skill = None
+        us_raw = d.get("use_skill")
+        if us_raw is not None:
+            use_skill = _parse_use_skill(us_raw)
+
         out[item_id] = ItemDef(
             item_id=item_id,
             weight=weight,  # type: ignore[arg-type]
             weapon_type=weapon_type,
             attack_profile=attack_profile,
+            use_skill=use_skill,
         )
     return out
 

@@ -1,6 +1,9 @@
 from __future__ import annotations
 from dataclasses import dataclass, field
-from typing import Dict, List, Optional, Literal, TypedDict
+from typing import Dict, List, Optional, Literal, TypedDict, TYPE_CHECKING
+
+if TYPE_CHECKING:
+    from battle_system.core.commands import Step
 
 from battle_system.core.types import CombatantID, GroupID, TeamID, AttackRange
 # from battle_system.rules.indices.status import StatusTag
@@ -26,6 +29,7 @@ AttackProfileCrit = Literal["STR","AGI","INT","WIS"]
 AttackProfileRange = Literal["MELEE","RANGED"]
 
 ItemWeight = Literal[0, 1, 2, 4, 8, 16]
+VALID_ITEM_WEIGHTS = frozenset({0, 1, 2, 4, 8, 16})
 
 
 @dataclass(frozen=True)
@@ -54,6 +58,18 @@ class AttackProfile:
     range: AttackProfileRange
 
 @dataclass(frozen=True)
+class UseSkillDef:
+    """아이템 사용 시 발동하는 스킬 템플릿 (actor 미확정)."""
+    skill_id: str
+    name: str
+    action_type: str = "SUB"          # 기본값 SUB (아이템 사용은 대부분 보조행동)
+    cooldown_turns: int = 0
+    steps: List[Step] = field(default_factory=list)
+    crit_stat: str = "STR"
+    target_filter: str = "ANY"
+
+
+@dataclass(frozen=True)
 class ItemDef:
     item_id: str
     weight: ItemWeight
@@ -61,6 +77,7 @@ class ItemDef:
     # 아래는 registry/스키마용 (엔진은 현재 weight만 사용)
     weapon_type: Optional[WeaponType] = None
     attack_profile: Optional[AttackProfile] = None
+    use_skill: Optional[UseSkillDef] = None   # Phase 36: 아이템 사용 스킬 템플릿
     
 @dataclass(frozen=True)
 class DropEntry:

@@ -1,0 +1,63 @@
+============================================================
+[PASS] tests/test_phase25_modifiers_apply.py::test_phase25_attack_indices_apply_hit_evade_and_crit_weight_modifiers
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 25] 지속 modifier(HIT/EVADE/WEAK/STRONG/CRITICAL)가
+              compute_attack_indices 결과에 그대로 가산 반영되어야 한다.
+
+    시나리오:
+    - 1v1 전투에서, baseline indices를 먼저 계산한다.
+    - attacker(A)에 HIT/WEAK/STRONG/CRITICAL modifier를 붙인다.
+    - defender(E)에 EVADE modifier를 붙인다.
+    기대:
+    - hit는 +HIT, evade는 +EVADE
+    - crit.weak/strong/critical은 각 modifier delta만큼 증가
+
+
+============================================================
+[PASS] tests/test_phase25_modifiers_apply.py::test_phase25_defense_modifier_increases_weak_weight_physical_and_magic_split
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 25] PHYSICAL_DEFENSE / MAGIC_DEFENSE는
+              피격 시 WEAK 가중치를 +delta 만큼 올려야 한다.
+
+    규칙:
+    - crit_stat이 STR/AGI면 물리 -> PHYSICAL_DEFENSE만 적용
+    - crit_stat이 INT/WIS면 마법 -> MAGIC_DEFENSE만 적용
+
+    시나리오:
+    - defender(E)에 PHYSICAL_DEFENSE=+9, MAGIC_DEFENSE=+21을 동시에 부여.
+    - crit_stat=STR(물리)로 indices 계산: weak는 +9만 반영되어야 한다.
+    - crit_stat=INT(마법)로 indices 계산: weak는 +21만 반영되어야 한다.
+    기대:
+    - 물리/마법에 따라 weak 증가량이 정확히 달라진다.
+
+
+============================================================
+[FAIL] tests/test_phase25_modifiers_apply.py::test_phase25_status_inflict_resist_modifiers_adjust_roll_inputs_in_logs
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 25] STATUS_INFLICT / STATUS_RESIST는
+              상태이상 판정(roll_status_success) 입력값 inflict/resist에 가산되어야 한다.
+
+    테스트 방식(안정성 목적):
+    - 성공/실패 결과는 RNG 영향이 있으므로 직접 검증하지 않는다.
+    - 대신 STATUS_CHECK 로그에 기록된 inflict/resist 값이
+      modifier 적용 전/후로 정확히 변하는지 비교한다.
+
+    시나리오:
+    - 동일한 skill(APPLY_EFFECT)을 modifier 없이 1회 실행해 baseline inflict/resist를 로그에서 추출.
+    - attacker에 STATUS_INFLICT +40, defender에 STATUS_RESIST +15를 부여한 뒤 같은 skill 실행.
+    기대:
+    - 두 번째 실행의 inflict는 baseline +40
+    - 두 번째 실행의 resist는 baseline +15
+
+
+[TRACEBACK]
+tests\test_phase25_modifiers_apply.py:207: in test_phase25_status_inflict_resist_modifiers_adjust_roll_inputs_in_logs
+    inf1, res1 = _parse_inflict_resist(line1)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+tests\test_phase25_modifiers_apply.py:68: in _parse_inflict_resist
+    assert m, f"Cannot parse inflict/resist from: {line}"
+E   AssertionError: Cannot parse inflict/resist from: STATUS_CHECK: A->E effect=STUN inflict=30+0 resist=15+0 resistible=True roll=29 success=True
+E   assert None
