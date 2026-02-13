@@ -1,0 +1,18 @@
+============================================================
+[PASS] tests/test_phase29_instant_death_and_instant_modifiers.py::test_phase29_instant_death_applies_immediately
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 29] INSTANT_DEATH:
+    - APPLY_EFFECT로 INSTANT_DEATH가 적용되면 즉시 hp=0
+    - events에 INSTANT_DEATH 로그가 존재해야 한다.
+
+
+============================================================
+[PASS] tests/test_phase29_instant_death_and_instant_modifiers.py::test_phase29_step_attack_modifiers_used_for_attack_and_do_not_persist
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 29] Step.attack_modifiers:
+    - (적용) 해당 ATTACK에서 basic_attack에 전달되는 modifiers가 지정값이어야 한다.
+    - (비잔존) 다음 공격(plain attack)에서는 modifiers가 0이어야 한다.
+
+

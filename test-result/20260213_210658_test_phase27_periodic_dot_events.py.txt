@@ -1,0 +1,77 @@
+============================================================
+[FAIL] tests/test_phase27_periodic_dot_events.py::test_phase27_bleeding_1turn_triggers_twice_on_tick_1_and_5_and_then_stops
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 27] Bleeding(턴 기반 DoT)
+    - n=4, turn_boundary: tick % 4 == 1  => tick=1,5,9,...
+    - duration(1 turn) => turns_to_ticks = 1*4+1 = 5 ticks
+    기대:
+    - tick=1에서 1회 발동
+    - tick=5에서 1회 발동
+    => 총 2회 dmg=1
+    - 5틱 이후에는 더 이상 발동 없음
+
+
+[TRACEBACK]
+tests\test_phase27_periodic_dot_events.py:89: in test_phase27_bleeding_1turn_triggers_twice_on_tick_1_and_5_and_then_stops
+    assert len(ev_bleed) == 2
+E   assert 0 == 2
+E    +  where 0 = len([])
+============================================================
+[FAIL] tests/test_phase27_periodic_dot_events.py::test_phase27_poisoned_2turn_triggers_three_times_on_tick_1_5_9_and_then_stops
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 27] Poisoned(턴 기반 DoT)
+    - n=4, boundary tick=1,5,9...
+    - duration(2 turn) => ticks = 2*4+1 = 9
+    기대:
+    - tick=1,5,9 총 3회 발동 => 총 -3
+    - 이후 발동 없음
+
+
+[TRACEBACK]
+tests\test_phase27_periodic_dot_events.py:117: in test_phase27_poisoned_2turn_triggers_three_times_on_tick_1_5_9_and_then_stops
+    assert len(ev) == 3
+E   assert 0 == 3
+E    +  where 0 = len([])
+============================================================
+[FAIL] tests/test_phase27_periodic_dot_events.py::test_phase27_decay_tick_based_triggers_on_tick_1_4_7_for_7ticks_and_then_stops
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 27] Decay(틱 기반 DoT)
+    - decay_boundary: tick % 3 == 1 => tick=1,4,7,10,...
+    - duration=7 ticks로 직접 부여
+    기대:
+    - tick=1,4,7 총 3회 발동, 각 dmg=2 => 총 -6
+    - 이후 발동 없음
+
+
+[TRACEBACK]
+tests\test_phase27_periodic_dot_events.py:144: in test_phase27_decay_tick_based_triggers_on_tick_1_4_7_for_7ticks_and_then_stops
+    assert len(ev) == 3
+E   assert 0 == 3
+E    +  where 0 = len([])
+============================================================
+[FAIL] tests/test_phase27_periodic_dot_events.py::test_phase27_combined_effects_emit_separate_log_lines_and_damage_stacks
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 27] 복합 DoT
+    - Bleeding(턴 기반) + Poisoned(턴 기반) + Decay(틱 기반)
+    - tick=1은 (turn_boundary, decay_boundary) 둘 다 만족 (n=4 기준)
+    기대:
+    - tick=1에서 victim에 대해 DOT 로그가 3줄(효과별) 발생
+    - hp는 총 (1 + 1 + 2) = 4 감소
+
+
+[TRACEBACK]
+tests\test_phase27_periodic_dot_events.py:178: in test_phase27_combined_effects_emit_separate_log_lines_and_damage_stacks
+    assert len(ev_b) == 1
+E   assert 0 == 1
+E    +  where 0 = len([])
+============================================================
+[PASS] tests/test_phase27_periodic_dot_events.py::test_phase27_no_dot_events_when_no_effects_present
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 27] 어떤 대상도 DoT 효과가 없으면 DOT_TICK 로그가 없어야 한다.
+
+

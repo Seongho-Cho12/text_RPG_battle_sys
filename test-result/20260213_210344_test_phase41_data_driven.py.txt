@@ -1,0 +1,142 @@
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_registry_loads
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_battle_setup_structure
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_skills_loaded
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_npc_skills_loaded
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_monster_skills_loaded
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_inventories_loaded
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_basic_attack_execution
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[FAIL] tests/test_phase41_data_driven.py::test_power_strike_execution
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+[TRACEBACK]
+setup = BattleSetup(allies=[CharacterDef(cid='HERO', name='용사 아린', level=5, stats=Stats(str=14, agi=12, con=13, int=8, wis=10,... 'THROWING_STONE': ItemDef(item_id='THROWING_STONE', weight=2, weapon_type=None, attack_profile=None, use_skill=None)})
+battle = (<battle_system.engine.engine.BattleEngine object at 0x0000028FB770F770>, BattleState(defs={'HERO': CharacterDef(cid='...LIN_A': {}, 'GOBLIN_B': {}, 'GOBLIN_SHAMAN': {}}, inventory_delta={}, xp_reward_total=0, ended=False, end_reason=None))
+
+    def test_power_strike_execution(setup: BattleSetup, battle: tuple) -> None:
+        eng, bs = battle
+        actor = _advance_to(eng, bs, "HERO")
+    
+        ps = [s for s in setup.skills_by_actor["HERO"] if s.skill_id == "SK_POWER_STRIKE"][0]
+        goblin = CombatantID("GOBLIN_A")
+    
+        av = get_skill_availability(bs, ps)
+>       assert av.usable is True
+E       AssertionError: assert False is True
+E        +  where False = SkillAvailability(usable=False, reason='NO_VALID_TARGET', engine_message='', spec=SkillInputSpec(target_required=True, item_required=False, target_candidates=[], item_candidates=[])).usable
+
+tests\test_phase41_data_driven.py:166: AssertionError
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_heal_potion_use
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_bleed_vial_use
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_throw_stone
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[FAIL] tests/test_phase41_data_driven.py::test_menu_tree_from_registry_data
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+[TRACEBACK]
+setup = BattleSetup(allies=[CharacterDef(cid='HERO', name='용사 아린', level=5, stats=Stats(str=14, agi=12, con=13, int=8, wis=10,... 'THROWING_STONE': ItemDef(item_id='THROWING_STONE', weight=2, weapon_type=None, attack_profile=None, use_skill=None)})
+battle = (<battle_system.engine.engine.BattleEngine object at 0x0000028FB7767050>, BattleState(defs={'HERO': CharacterDef(cid='...LIN_A': {}, 'GOBLIN_B': {}, 'GOBLIN_SHAMAN': {}}, inventory_delta={}, xp_reward_total=0, ended=False, end_reason=None))
+
+    def test_menu_tree_from_registry_data(setup: BattleSetup, battle: tuple) -> None:
+        eng, bs = battle
+        actor = _advance_to(eng, bs, "HERO")
+    
+        menu = build_turn_menu(
+            bs, actor,
+            setup.skills_by_actor["HERO"],
+            items_registry=setup.items,
+        )
+    
+        # 4개 루트 노드
+        assert len(menu.nodes) == 4
+        basic = menu.get_node("BASIC")
+        unique = menu.get_node("UNIQUE")
+        item_use = menu.get_node("ITEM_USE")
+        end_turn = menu.get_node("END_TURN")
+    
+        assert basic.enabled is True
+>       assert unique.enabled is True
+E       AssertionError: assert False is True
+E        +  where False = MenuNode(title='고유행동', kind='UNIQUE', items=[MenuItem(label='강타', enabled=False, reason='NO_VALID_TARGET', kind='UNIQUE_SKILL', payload=Skill(skill_id='SK_POWER_STRIKE', name='강타', actor='HERO', allowed_weapon_types=['SWORD', 'AXE', 'HAMMER'], action_type='MAIN', cooldown_turns=2, steps=[Step(kind='ATTACK', target=None, range='MELEE', area='SINGLE', reaction_immune=False, reaction_hit_penalty=5, effect_id=None, effect_duration=None, status_inflict=None, modifier_key=None, modifier_delta=None, modifier_duration=None, modifier_status_tag=None, hp_delta=None, require_prev_gte=0, attack_modifiers={'hit': -5, 'strong': 10}, throw_item_id=None)], crit_stat='STR', target_filter='ENEMY', consume_item_id=None)), MenuItem(label='은밀 일격', enabled=False, reason='NO_VALID_TARGET', kind='UNIQUE_SKILL', payload=Skill(skill_id='SK_STEALTH_STRIKE', name='은밀 일격', actor='HERO', allowed_weapon_types=['SWORD', 'DAGGER'], action_type='MAIN', cooldown_turns=4, steps=[Step(kind='TACTICAL_STEALTH', target=None, range='ANY', area='SINGLE', reaction_immune=False, reaction_hit_penalty=5, effect_id=None, effect_duration=None, status_inflict=None, modifier_key=None, modifier_delta=None, modifier_duration=None, modifier_status_tag=None, hp_delta=None, require_prev_gte=0, attack_modifiers=IndexModifiers(hit=0, evade=0, weak=0, strong=0, critical=0), throw_item_id=None), Step(kind='ATTACK', target=None, range='MELEE', area='SINGLE', reaction_immune=False, reaction_hit_penalty=5, effect_id=None, effect_duration=None, status_inflict=None, modifier_key=None, modifier_delta=None, modifier_duration=None, modifier_status_tag=None, hp_delta=None, require_prev_gte=1, attack_modifiers={'critical': 5}, throw_item_id=None)], crit_stat='AGI', target_filter='ENEMY', consume_item_id=None))]).enabled
+
+tests\test_phase41_data_driven.py:273: AssertionError
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_npc_heal_light
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_weapon_compatibility_filter
+------------------------------------------------------------
+[EXPERIMENT]
+HERO(SWORD)는 STAFF 전용 스킬을 가지면 안 됨
+
+

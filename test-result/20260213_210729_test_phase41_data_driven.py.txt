@@ -1,0 +1,105 @@
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_registry_loads
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_battle_setup_structure
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_skills_loaded
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_npc_skills_loaded
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_monster_skills_loaded
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_inventories_loaded
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_basic_attack_execution
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_power_strike_no_target_before_engage
+------------------------------------------------------------
+[EXPERIMENT]
+MELEE ENEMY 스킬은 같은 그룹에 적이 없으면 NO_VALID_TARGET.
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_power_strike_after_engage
+------------------------------------------------------------
+[EXPERIMENT]
+Engage 후 같은 그룹으로 이동하면 MELEE 대상이 생긴다.
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_heal_potion_use
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_bleed_vial_use
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_throw_stone
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_menu_tree_from_registry_data
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_npc_heal_light
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase41_data_driven.py::test_weapon_compatibility_filter
+------------------------------------------------------------
+[EXPERIMENT]
+HERO(SWORD)는 STAFF 전용 스킬을 가지면 안 됨
+
+

@@ -12,6 +12,17 @@ from battle_system.core.models import (
     UseSkillDef, VALID_ITEM_WEIGHTS,
 )
 from battle_system.core.commands import Skill, Step
+from battle_system.rules.indices.facade import IndexModifiers
+
+
+def _parse_step(sd: dict) -> Step:
+    """YAML dict → Step. attack_modifiers dict → IndexModifiers 변환 포함."""
+    am = sd.get("attack_modifiers")
+    if isinstance(am, dict):
+        sd = dict(sd)  # 원본 변경 방지
+        sd["attack_modifiers"] = IndexModifiers(**am)
+    return Step(**sd)
+
 
 
 def _read_yaml(path: Path) -> dict:
@@ -26,7 +37,7 @@ def _parse_use_skill(d: dict) -> UseSkillDef:
     """
     steps = []
     for sd in d.get("steps", []):
-        steps.append(Step(**sd))
+        steps.append(_parse_step(sd))
     return UseSkillDef(
         skill_id=d.get("skill_id", "USE_ITEM"),
         name=d.get("name", "Use Item"),
@@ -83,7 +94,7 @@ def load_skill_def(path: str | Path, *, actor: str) -> Skill:
     d = _read_yaml(p)
     steps = []
     for sd in d.get("steps", []):
-        steps.append(Step(**sd))
+        steps.append(_parse_step(sd))
     return Skill(
         skill_id=d["skill_id"],
         name=d.get("name", d["skill_id"]),
