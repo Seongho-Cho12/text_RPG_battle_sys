@@ -176,11 +176,12 @@ def test_phase15_crit_indices_strength_like_STR_and_INT():
       - INT 결과: (28,6,0)
     """
     stats = Stats(str=12, agi=0, con=0, int=12, wis=0, cha=0)
+    zero_def = Stats(str=0, agi=0, con=0, int=0, wis=0, cha=0)
 
-    ci_str = compute_crit_indices(attacker_level=2, attacker_stats=stats, crit_stat="STR")
+    ci_str = compute_crit_indices(attacker_level=2, attacker_stats=stats, defender_stats=zero_def, crit_stat="STR")
     assert (ci_str.weak, ci_str.strong, ci_str.crit) == (28, 6, 0)
 
-    ci_int = compute_crit_indices(attacker_level=2, attacker_stats=stats, crit_stat="INT")
+    ci_int = compute_crit_indices(attacker_level=2, attacker_stats=stats, defender_stats=zero_def, crit_stat="INT")
     assert (ci_int.weak, ci_int.strong, ci_int.crit) == (28, 6, 0)
 
 
@@ -201,7 +202,8 @@ def test_phase15_crit_indices_agility_like_AGI():
       - (weak,strong,crit) == (25,35,12) (정수 내림 전제)
     """
     stats = Stats(str=10, agi=20, con=0, int=0, wis=0, cha=0)
-    ci = compute_crit_indices(attacker_level=10, attacker_stats=stats, crit_stat="AGI")
+    zero_def = Stats(str=0, agi=0, con=0, int=0, wis=0, cha=0)
+    ci = compute_crit_indices(attacker_level=10, attacker_stats=stats, defender_stats=zero_def, crit_stat="AGI")
     assert (ci.weak, ci.strong, ci.crit) == (25, 35, 12)
 
 
@@ -223,7 +225,8 @@ def test_phase15_crit_indices_agility_like_WIS_uses_INT_as_secondary_and_truncat
       - (weak,strong,crit) == (22,43,24)
     """
     stats = Stats(str=0, agi=0, con=0, int=14, wis=18, cha=0)
-    ci = compute_crit_indices(attacker_level=17, attacker_stats=stats, crit_stat="WIS")
+    zero_def = Stats(str=0, agi=0, con=0, int=0, wis=0, cha=0)
+    ci = compute_crit_indices(attacker_level=17, attacker_stats=stats, defender_stats=zero_def, crit_stat="WIS")
     assert (ci.weak, ci.strong, ci.crit) == (22, 43, 24)
 
 

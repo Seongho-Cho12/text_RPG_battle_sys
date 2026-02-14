@@ -1,0 +1,22 @@
+============================================================
+[PASS] D:\text_rpg\battle\tests\test_phase20_22_modifiers.py::test_phase22_apply_hp_delta_is_immediate_and_clamped_2
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: APPLY_HP_DELTA가 즉시 반영되고 최대 체력 이상 올라가면 clamp되는지 검증
+    EXPECTED:
+      - hp: 5 -> 50
+
+[CAPTURED OUTPUT]
+
+[Phase22] HP_DELTA events:
+  SLOT: MAIN used by A1
+  HP_DELTA: E1 5->50 (delta=999)
+============================================================
+[PASS] tests/test_phase20_22_modifiers.py::test_phase22_apply_hp_delta_is_immediate_and_clamped_2
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: APPLY_HP_DELTA가 즉시 반영되고 최대 체력 이상 올라가면 clamp되는지 검증
+        EXPECTED:
+          - hp: 5 -> 50
+
+

@@ -1,0 +1,7 @@
+============================================================
+[SKIP] tests/test_phase44_stealth_bug.py::test_reproduce_stealth_strike_bug
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+

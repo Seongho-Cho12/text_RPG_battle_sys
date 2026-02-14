@@ -1,0 +1,40 @@
+============================================================
+[PASS] tests/test_phase13_status_checks.py::test_phase13_status_check_trials_and_log_distribution
+------------------------------------------------------------
+[EXPERIMENT]
+TITLE: 상태이상 판정(가중치 추첨)이 여러 trial에서 정상적으로 분포를 만들고 로그로 남는지 검증
+    SETUP:
+      - 같은 trial 수로 inflict/resist 비율을 바꾼 3가지 케이스를 실행한다.
+        A) inflict 10, resist 10  -> 성공률 ~50%
+        B) inflict 20, resist 5   -> 성공률 상승
+        C) inflict 5,  resist 20  -> 성공률 하락
+      - seed를 고정하여 재현 가능하게 한다.
+    STEPS:
+      1) 각 케이스별로 N회 roll_status_success 실행
+      2) success 횟수/비율을 계산
+      3) 상세 로그(첫 10개 roll)와 요약을 print
+    EXPECTED:
+      - 성공 비율이 B > A > C 순서로 나와야 한다(방향성 확인)
+      - 모든 roll은 1..(inflict+resist) 범위여야 한다
+      - 출력이 캡처되어 test-result txt에서 확인 가능해야 한다
+
+[CAPTURED OUTPUT]
+[Captured stdout call]
+
+[Phase13 StatusCheck Trials] N=200, base_seed=30000
+
+CASE A: inflict=10, resist=10
+first10 (roll,success): [(7, True), (1, True), (16, False), (4, True), (8, True), (1, True), (4, True), (11, False), (15, False), (10, True)]
+success=91/200 rate=0.455
+
+CASE B: inflict=20, resist=5
+first10 (roll,success): [(20, True), (19, True), (21, False), (10, True), (12, True), (6, True), (16, True), (19, True), (22, False), (9, True)]
+success=157/200 rate=0.785
+
+CASE C: inflict=5, resist=20
+first10 (roll,success): [(1, True), (20, False), (19, False), (17, False), (9, False), (8, False), (19, False), (14, False), (15, False), (24, False)]
+success=35/200 rate=0.175
+
+[Summary rates] {'A': 0.455, 'B': 0.785, 'C': 0.175}
+
+

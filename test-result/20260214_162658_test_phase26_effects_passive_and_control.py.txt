@@ -1,0 +1,105 @@
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_attacker_hit_effects_apply_and_expire[CONFUSION--20]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 공격자(attacker)에게 걸린 상태이상이 HIT 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: HIT -20
+    - Fear: HIT -10
+    - Blind: HIT -40
+    - Slow: HIT -10
+
+    시나리오:
+    - baseline indices 측정
+    - attacker에 effect를 ticks=1로 부여
+    - hit가 baseline + delta_hit 인지 확인
+    - end_turn 1회 => effect 삭제
+    - hit가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_attacker_hit_effects_apply_and_expire[FEAR--10]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 공격자(attacker)에게 걸린 상태이상이 HIT 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: HIT -20
+    - Fear: HIT -10
+    - Blind: HIT -40
+    - Slow: HIT -10
+
+    시나리오:
+    - baseline indices 측정
+    - attacker에 effect를 ticks=1로 부여
+    - hit가 baseline + delta_hit 인지 확인
+    - end_turn 1회 => effect 삭제
+    - hit가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_attacker_hit_effects_apply_and_expire[BLIND--40]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 공격자(attacker)에게 걸린 상태이상이 HIT 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: HIT -20
+    - Fear: HIT -10
+    - Blind: HIT -40
+    - Slow: HIT -10
+
+    시나리오:
+    - baseline indices 측정
+    - attacker에 effect를 ticks=1로 부여
+    - hit가 baseline + delta_hit 인지 확인
+    - end_turn 1회 => effect 삭제
+    - hit가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_attacker_hit_effects_apply_and_expire[SLOW--10]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 공격자(attacker)에게 걸린 상태이상이 HIT 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: HIT -20
+    - Fear: HIT -10
+    - Blind: HIT -40
+    - Slow: HIT -10
+
+    시나리오:
+    - baseline indices 측정
+    - attacker에 effect를 ticks=1로 부여
+    - hit가 baseline + delta_hit 인지 확인
+    - end_turn 1회 => effect 삭제
+    - hit가 baseline으로 복귀하는지 확인
+
+
+============================================================
+[PASS] tests/test_phase26_effects_passive_and_control.py::test_phase26_defender_evade_effects_apply_and_expire[CONFUSION--5]
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 26] 방어자(defender)에게 걸린 상태이상이 EVADE 지수에 반영되고,
+              tick 감소로 상태이상이 삭제되면 더 이상 반영되지 않아야 한다.
+
+    검증 대상(표 기준):
+    - Confusion: EVADE -5
+    - Fear: EVADE -50
+    - Slow: EVADE -10
+    - Bind: EVADE -50
+
+    시나리오:
+    - baseline indices 측정
+    - defender에 effect ticks=1 부여
+    - evade가 baseline + delta_evade 인지 확인
+    - end_turn 1회 => effect 삭제
+    - evade가 baseline으로 복귀하는지 확인
+
+

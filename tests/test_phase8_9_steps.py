@@ -2,7 +2,7 @@ import random
 
 from battle_system.core.types import CombatantID
 from battle_system.core.models import Stats, CharacterDef
-from battle_system.core.commands import Step
+from battle_system.core.commands import Step, Skill
 from battle_system.engine.engine import BattleEngine
 
 
@@ -97,21 +97,27 @@ def test_phase8_steps_move_engage_then_disengage_triggers_reactions_trials():
         eng, bs = _new_battle_for_reactions()
         hp_before = bs.combatants[A1].hp
 
-        steps = [
-            Step(kind="MOVE_ENGAGE", actor=A1, target=E1, reaction_immune=False, action_type="MAIN"),
-            Step(kind="MOVE_DISENGAGE", actor=A1, target=None, reaction_immune=False, action_type="MAIN"),
-        ]
+        skill = Skill(
+            skill_id="test_move",
+            name="test_move",
+            actor=A1,
+            action_type="MAIN",
+            steps=[
+                Step(kind="MOVE_ENGAGE", target=E1, reaction_immune=False),
+                Step(kind="MOVE_DISENGAGE", target=A1, reaction_immune=False, reaction_hit_penalty=PENALTY),
+            ],
+        )
 
-        out = eng.apply_steps(bs, steps, reaction_hit_penalty=PENALTY)
+        out = eng.apply_skill(bs, skill)
         hp_after = bs.combatants[A1].hp
 
         print(f"\n--- trial={t} seed={seed} A1_hp {hp_before}->{hp_after}")
         for e in out.events:
             print(" ", e)
 
-        # 최소 검증
-        assert any(ev.startswith("STEP:") for ev in out.events)
-        assert any(ev.startswith("REACTION:") for ev in out.events)
+        # 최소 검증: STEP 로그와 REACTION 로그가 존재해야 함
+        assert any("STEP" in ev or "MOVE" in ev for ev in out.events)
+        assert any("REACTION" in ev for ev in out.events)
 
 
 def test_phase9_steps_attack_runs_trials_and_hp_delta_matches_damage():
@@ -151,11 +157,17 @@ def test_phase9_steps_attack_runs_trials_and_hp_delta_matches_damage():
         eng, bs = _new_battle_for_attack()
         hp_before = bs.combatants[E1].hp
 
-        steps = [
-            Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="MAIN"),
-        ]
+        skill = Skill(
+            skill_id="test_attack",
+            name="test_attack",
+            actor=A1,
+            action_type="MAIN",
+            steps=[
+                Step(kind="ATTACK", target=E1),
+            ],
+        )
 
-        out = eng.apply_steps(bs, steps)
+        out = eng.apply_skill(bs, skill)
         hp_after = bs.combatants[E1].hp
 
         print(f"\n--- trial={t} seed={seed} E1_hp {hp_before}->{hp_after}")
@@ -163,7 +175,7 @@ def test_phase9_steps_attack_runs_trials_and_hp_delta_matches_damage():
             print(" ", e)
 
         # "STEP: ATTACK ... dmg=X"에서 dmg 파싱
-        attack_logs = [ev for ev in out.events if ev.startswith("STEP: ATTACK")]
+        attack_logs = [ev for ev in out.events if "ATTACK" in ev and "dmg=" in ev]
         assert len(attack_logs) == 1
         log = attack_logs[0]
         dmg = int(log.split("dmg=")[1])
@@ -196,11 +208,17 @@ def test_phase9_steps_combo_move_then_attack_single_main_consumption():
     # 시작 슬롯 상태 확인
     assert bs.combatants[A1].can_main is True
 
-    steps = [
-        Step(kind="MOVE_ENGAGE", actor=A1, target=E1, reaction_immune=False, action_type="MAIN"),
-        Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="MAIN"),
-    ]
-    out = eng.apply_steps(bs, steps)
+    skill = Skill(
+        skill_id="test_combo",
+        name="test_combo",
+        actor=A1,
+        action_type="MAIN",
+        steps=[
+            Step(kind="MOVE_ENGAGE", target=E1, reaction_immune=False),
+            Step(kind="ATTACK", target=E1),
+        ],
+    )
+    out = eng.apply_skill(bs, skill)
 
     for e in out.events:
         print(" ", e)

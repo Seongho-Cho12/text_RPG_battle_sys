@@ -1,0 +1,97 @@
+============================================================
+[FAIL] tests/test_phase25_modifiers_apply.py::test_phase25_status_inflict_resist_modifiers_adjust_roll_inputs_in_logs
+------------------------------------------------------------
+[EXPERIMENT]
+[Phase 25] STATUS_INFLICT / STATUS_RESIST는
+              상태이상 판정(roll_status_success) 입력값 inflict/resist에 가산되어야 한다.
+
+    테스트 방식(안정성 목적):
+    - 성공/실패 결과는 RNG 영향이 있으므로 직접 검증하지 않는다.
+    - 대신 STATUS_CHECK 로그에 기록된 inflict/resist 값이
+      modifier 적용 전/후로 정확히 변하는지 비교한다.
+
+    시나리오:
+    - 동일한 skill(APPLY_EFFECT)을 modifier 없이 1회 실행해 baseline inflict/resist를 로그에서 추출.
+    - attacker에 STATUS_INFLICT +40, defender에 STATUS_RESIST +15를 부여한 뒤 같은 skill 실행.
+    기대:
+    - 두 번째 실행의 inflict는 baseline +40
+    - 두 번째 실행의 resist는 baseline +15
+
+
+[TRACEBACK]
+def test_phase25_status_inflict_resist_modifiers_adjust_roll_inputs_in_logs():
+        """
+        [Phase 25] STATUS_INFLICT / STATUS_RESIST는
+                  상태이상 판정(roll_status_success) 입력값 inflict/resist에 가산되어야 한다.
+    
+        테스트 방식(안정성 목적):
+        - 성공/실패 결과는 RNG 영향이 있으므로 직접 검증하지 않는다.
+        - 대신 STATUS_CHECK 로그에 기록된 inflict/resist 값이
+          modifier 적용 전/후로 정확히 변하는지 비교한다.
+    
+        시나리오:
+        - 동일한 skill(APPLY_EFFECT)을 modifier 없이 1회 실행해 baseline inflict/resist를 로그에서 추출.
+        - attacker에 STATUS_INFLICT +40, defender에 STATUS_RESIST +15를 부여한 뒤 같은 skill 실행.
+        기대:
+        - 두 번째 실행의 inflict는 baseline +40
+        - 두 번째 실행의 resist는 baseline +15
+        """
+        eng, bs, A, E = _mk_engine_1v1()
+    
+        # 주의: effect_id는 레포에 존재하는 StatusID 여야 한다.
+        # 보통은 "STUN" 같은 대문자 ID를 사용 (status.py Literal 기준).
+        skill = Skill(
+            skill_id="P25_STATUS_MODS",
+            name="status mods",
+            actor=A,
+            action_type="MAIN",
+            cooldown_turns=0,
+            crit_stat="STR",
+            steps=[
+                Step(
+                    kind="APPLY_EFFECT",
+                    target=E,
+                    effect_id="STUN",
+                    effect_duration=1,
+                    status_inflict=30,
+                    range="ANY",
+                    area="SINGLE",
+                ),
+            ],
+        )
+    
+        skill_2 = Skill(
+            skill_id="P25_STATUS_MODS",
+            name="status mods",
+            actor=A,
+            action_type="SUB",
+            cooldown_turns=0,
+            crit_stat="STR",
+            steps=[
+                Step(
+                    kind="APPLY_EFFECT",
+                    target=E,
+                    effect_id="STUN",
+                    effect_duration=1,
+                    status_inflict=30,
+                    range="ANY",
+                    area="SINGLE",
+                ),
+            ],
+        )
+    
+        out1 = eng.apply_skill(bs, skill)
+        line1 = _find_status_check(_events(out1))
+        inf1, res1 = _parse_inflict_resist(line1)
+    
+        _add_mod(bs, A, key="STATUS_INFLICT", delta=40)
+        _add_mod(bs, E, key="STATUS_RESIST", delta=15)
+    
+        out2 = eng.apply_skill(bs, skill_2)
+        line2 = _find_status_check(_events(out2))
+        inf2, res2 = _parse_inflict_resist(line2)
+    
+>       assert inf2 == inf1 + 40
+E       assert 30 == (30 + 40)
+
+tests\test_phase25_modifiers_apply.py:221: AssertionError

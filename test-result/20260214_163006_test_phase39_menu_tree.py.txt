@@ -1,0 +1,77 @@
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_turn_menu_has_four_root_nodes
+------------------------------------------------------------
+[EXPERIMENT]
+메뉴는 기본행동/고유행동/아이템사용/턴종료 4개 루트를 가진다.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_basic_node_has_expected_items
+------------------------------------------------------------
+[EXPERIMENT]
+기본행동 노드는 basic_attack/engage/disengage/escape/throw를 포함한다.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_basic_node_enabled_when_skills_available
+------------------------------------------------------------
+[EXPERIMENT]
+기본 스킬이 사용 가능하면 기본행동 노드 enabled.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_unique_node_has_personal_skills
+------------------------------------------------------------
+[EXPERIMENT]
+고유행동 노드는 개인 스킬을 포함한다.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_unique_node_disabled_when_no_skills
+------------------------------------------------------------
+[EXPERIMENT]
+고유 스킬이 없으면 고유행동 노드 disabled.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_item_use_node_enabled_items
+------------------------------------------------------------
+[EXPERIMENT]
+use_skill 있는 아이템은 enabled.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_item_use_node_disabled_no_use_skill
+------------------------------------------------------------
+[EXPERIMENT]
+use_skill 없는 아이템은 disabled (NO_USE_SKILL).
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_item_use_node_disabled_when_empty_inventory
+------------------------------------------------------------
+[EXPERIMENT]
+인벤토리가 비면 아이템사용 노드 disabled.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_root_disabled_when_all_children_disabled
+------------------------------------------------------------
+[EXPERIMENT]
+모든 스킬이 쿨다운 등으로 disabled면 루트 노드도 disabled.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_end_turn_always_enabled
+------------------------------------------------------------
+[EXPERIMENT]
+턴종료 노드는 항상 enabled.
+
+
+============================================================
+[PASS] tests/test_phase39_menu_tree.py::test_throw_disabled_when_no_items
+------------------------------------------------------------
+[EXPERIMENT]
+투척 아이템이 없으면 throw 항목 disabled.
+
+

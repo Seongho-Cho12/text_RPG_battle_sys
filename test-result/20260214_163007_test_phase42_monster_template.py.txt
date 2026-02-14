@@ -1,0 +1,63 @@
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_instance_ids_single_each
+------------------------------------------------------------
+[EXPERIMENT]
+각 템플릿이 1개뿐이면 bare ID 그대로.
+
+
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_instance_ids_duplicates
+------------------------------------------------------------
+[EXPERIMENT]
+같은 템플릿 2개 이상이면 #1, #2 ... 붙인다.
+
+
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_instance_ids_mixed
+------------------------------------------------------------
+[EXPERIMENT]
+중복 + 단일 혼합.
+
+
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_instance_ids_triple
+------------------------------------------------------------
+[EXPERIMENT]
+같은 템플릿 3개.
+
+
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_spawn_two_of_same_monster
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_characters_still_from_characters_dir
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_skills_use_instance_cid
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_mixed_enemies
+------------------------------------------------------------
+[EXPERIMENT]
+같은 종 2 + 다른 종 1.
+
+
+============================================================
+[PASS] tests/test_phase42_monster_template.py::test_single_monster_bare_id
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+

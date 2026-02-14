@@ -90,10 +90,10 @@ def _snap(bs, A: CombatantID, E: CombatantID, *, crit_stat: str) -> IndicesSnap:
 @pytest.mark.parametrize(
     "effect_id, delta_hit",
     [
-        ("Confusion", -20),
-        ("Fear", -10),
-        ("Blind", -40),
-        ("Slow", -10),
+        ("CONFUSION", -20),
+        ("FEAR", -10),
+        ("BLIND", -40),
+        ("SLOW", -10),
     ],
 )
 def test_phase26_attacker_hit_effects_apply_and_expire(effect_id: str, delta_hit: int):
@@ -132,10 +132,10 @@ def test_phase26_attacker_hit_effects_apply_and_expire(effect_id: str, delta_hit
 @pytest.mark.parametrize(
     "effect_id, delta_evade",
     [
-        ("Confusion", -5),
-        ("Fear", -50),
-        ("Slow", -10),
-        ("Bind", -50),
+        ("CONFUSION", -5),
+        ("FEAR", -50),
+        ("SLOW", -10),
+        ("BIND", -50),
     ],
 )
 def test_phase26_defender_evade_effects_apply_and_expire(effect_id: str, delta_evade: int):
@@ -175,20 +175,20 @@ def test_phase26_defender_evade_effects_apply_and_expire(effect_id: str, delta_e
     "effect_id, delta_weak, crit_stat",
     [
         # always applies
-        ("Burned", -10, "STR"),
-        ("Frostbite", -10, "STR"),
-        ("Frozen", -15, "STR"),
-        ("Burned", -10, "INT"),
-        ("Frostbite", -10, "INT"),
-        ("Frozen", -15, "INT"),
+        ("BURNED", -10, "STR"),
+        ("FROSTBITE", -10, "STR"),
+        ("FROZEN", -15, "STR"),
+        ("BURNED", -10, "INT"),
+        ("FROSTBITE", -10, "INT"),
+        ("FROZEN", -15, "INT"),
 
         # conditional by crit_stat
-        ("Stun", -5, "STR"),        # physical only
-        ("Stun", 0, "INT"),
-        ("Paralysis", 0, "STR"),
-        ("Paralysis", -5, "INT"),   # magic only
-        ("Corruption", 0, "STR"),
-        ("Corruption", -15, "INT"), # magic only
+        ("STUN", -5, "STR"),        # physical only
+        ("STUN", 0, "INT"),
+        ("PARALYSIS", 0, "STR"),
+        ("PARALYSIS", -5, "INT"),   # magic only
+        ("CORRUPTION", 0, "STR"),
+        ("CORRUPTION", -15, "INT"), # magic only
     ],
 )
 def test_phase26_defender_weak_weight_effects_apply_and_expire(effect_id: str, delta_weak: int, crit_stat: str):
@@ -244,7 +244,7 @@ def test_phase26_weakness_increases_attacker_weak_on_physical_only_and_expires()
     base_str = _snap(bs, A, E, crit_stat="STR")
     base_int = _snap(bs, A, E, crit_stat="INT")
 
-    _set_effect(bs, A, "Weakness", ticks=1)
+    _set_effect(bs, A, "WEAKNESS", ticks=1)
 
     after_str = _snap(bs, A, E, crit_stat="STR")
     after_int = _snap(bs, A, E, crit_stat="INT")
@@ -253,7 +253,7 @@ def test_phase26_weakness_increases_attacker_weak_on_physical_only_and_expires()
     assert after_int.weak == base_int.weak
 
     _expire_all_effects_by_end_turn(eng, bs, n=1)
-    assert not _has_effect(bs, A, "Weakness")
+    assert not _has_effect(bs, A, "WEAKNESS")
 
     restored_str = _snap(bs, A, E, crit_stat="STR")
     restored_int = _snap(bs, A, E, crit_stat="INT")
@@ -318,7 +318,7 @@ def _magic_apply_effect_skill(actor: CombatantID, target: CombatantID, *, action
             Step(
                 kind="APPLY_EFFECT",
                 target=target,
-                effect_id="Blind",
+                effect_id="BLIND",
                 effect_duration=1,
                 status_inflict=10,
                 range="ANY",
@@ -343,7 +343,7 @@ def _physical_apply_effect_skill(actor: CombatantID, target: CombatantID, *, act
             Step(
                 kind="APPLY_EFFECT",
                 target=target,
-                effect_id="Blind",
+                effect_id="BLIND",
                 effect_duration=1,
                 status_inflict=10,
                 range="ANY",
@@ -371,7 +371,7 @@ def _two_step_skill(actor: CombatantID, target: CombatantID, *, action_type: str
     )
 
 
-@pytest.mark.parametrize("effect_id", ["Stun", "Paralysis", "Frozen"])
+@pytest.mark.parametrize("effect_id", ["STUN", "PARALYSIS", "FROZEN"])
 def test_phase26_action_blocking_effects_block_any_skill(effect_id: str):
     """
     [Phase 26] 행동 불가 상태이상은 어떤 스킬이든 사용을 막아야 한다.
@@ -410,13 +410,13 @@ def test_phase26_bind_blocks_move_skills_but_allows_non_move():
     """
     # non-move allowed
     eng1, bs1, A1, E1 = _mk_engine_1v1()
-    _set_effect(bs1, A1, "Bind", ticks=2)
+    _set_effect(bs1, A1, "BIND", ticks=2)
     out1 = eng1.apply_skill(bs1, _simple_damage_skill(A1, E1, action_type="MAIN"))
     assert not _is_blocked(out1)
 
     # move blocked
     eng2, bs2, A2, _ = _mk_engine_1v1()
-    _set_effect(bs2, A2, "Bind", ticks=2)
+    _set_effect(bs2, A2, "BIND", ticks=2)
     out2 = eng2.apply_skill(bs2, _move_skill(A2, action_type="MAIN"))
     assert _is_blocked(out2)
 
@@ -433,13 +433,13 @@ def test_phase26_oblivion_blocks_multi_step_only():
     """
     # 1-step allowed
     eng1, bs1, A1, E1 = _mk_engine_1v1()
-    _set_effect(bs1, A1, "Oblivion", ticks=2)
+    _set_effect(bs1, A1, "OBLIVION", ticks=2)
     out1 = eng1.apply_skill(bs1, _simple_damage_skill(A1, E1, action_type="MAIN"))
     assert not _is_blocked(out1)
 
     # 2-step blocked
     eng2, bs2, A2, E2 = _mk_engine_1v1()
-    _set_effect(bs2, A2, "Oblivion", ticks=2)
+    _set_effect(bs2, A2, "OBLIVION", ticks=2)
     out2 = eng2.apply_skill(bs2, _two_step_skill(A2, E2, action_type="MAIN"))
     assert _is_blocked(out2)
 
@@ -458,24 +458,24 @@ def test_phase26_curse_blocks_magic_attack_or_apply_effect_but_not_others():
     """
     # (blocked) magic + apply_effect
     eng1, bs1, A1, E1 = _mk_engine_1v1()
-    _set_effect(bs1, A1, "Curse", ticks=2)
+    _set_effect(bs1, A1, "CURSE", ticks=2)
     out1 = eng1.apply_skill(bs1, _magic_apply_effect_skill(A1, E1, action_type="MAIN"))
     assert _is_blocked(out1)
 
     # (blocked) magic + no apply_effect
     eng2, bs2, A2, E2 = _mk_engine_1v1()
-    _set_effect(bs2, A2, "Curse", ticks=2)
+    _set_effect(bs2, A2, "CURSE", ticks=2)
     out2 = eng2.apply_skill(bs2, _simple_damage_skill(A2, E2, action_type="MAIN", crit_stat="INT"))
     assert _is_blocked(out2)
 
     # (blocked) physical + apply_effect
     eng3, bs3, A3, E3 = _mk_engine_1v1()
-    _set_effect(bs3, A3, "Curse", ticks=2)
+    _set_effect(bs3, A3, "CURSE", ticks=2)
     out3 = eng3.apply_skill(bs3, _physical_apply_effect_skill(A3, E3, action_type="MAIN"))
     assert _is_blocked(out3)
 
     # (allowed) physical + no apply_effect
     eng4, bs4, A4, E4 = _mk_engine_1v1()
-    _set_effect(bs4, A4, "Curse", ticks=2)
+    _set_effect(bs4, A4, "CURSE", ticks=2)
     out4 = eng4.apply_skill(bs4, _simple_damage_skill(A4, E4, action_type="MAIN", crit_stat="STR"))
     assert not _is_blocked(out4)

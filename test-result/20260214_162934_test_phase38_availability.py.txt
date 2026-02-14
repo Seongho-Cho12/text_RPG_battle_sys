@@ -1,0 +1,84 @@
+============================================================
+[PASS] tests/test_phase38_availability.py::test_skill_availability_no_item_stock
+------------------------------------------------------------
+[EXPERIMENT]
+consume_item_id 아이템이 인벤토리에 없으면 NO_ITEM_STOCK.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_skill_availability_with_item_stock
+------------------------------------------------------------
+[EXPERIMENT]
+consume_item_id 아이템 수량 충분하면 OK.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_skill_availability_no_consume_item_id_is_ok
+------------------------------------------------------------
+[EXPERIMENT]
+consume_item_id가 없는 일반 스킬은 아이템 체크 안 함.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_list_use_items_with_and_without_use_skill
+------------------------------------------------------------
+[EXPERIMENT]
+use_skill 있는 아이템은 enabled, 없는 아이템은 NO_USE_SKILL.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_list_use_items_zero_stock
+------------------------------------------------------------
+[EXPERIMENT]
+수량 0인 아이템은 NO_STOCK.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_list_use_items_empty_inventory
+------------------------------------------------------------
+[EXPERIMENT]
+빈 인벤토리면 빈 리스트.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_list_throw_items_with_stock
+------------------------------------------------------------
+[EXPERIMENT]
+수량 > 0인 아이템은 enabled.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_list_throw_items_zero_stock
+------------------------------------------------------------
+[EXPERIMENT]
+수량 0인 아이템은 NO_STOCK.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_target_options_attack_enemy_filter
+------------------------------------------------------------
+[EXPERIMENT]
+ENEMY 필터 스킬: 적만 enabled, 아군은 WRONG_TEAM.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_target_options_self_filter
+------------------------------------------------------------
+[EXPERIMENT]
+SELF 필터 스킬: actor만 enabled, 나머지 WRONG_TEAM.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_target_options_ally_filter
+------------------------------------------------------------
+[EXPERIMENT]
+ALLY 필터 스킬: 같은 team만 enabled.
+
+
+============================================================
+[PASS] tests/test_phase38_availability.py::test_target_options_down_target
+------------------------------------------------------------
+[EXPERIMENT]
+DOWN 상태인 대상은 enabled=False, reason=DOWN.
+
+

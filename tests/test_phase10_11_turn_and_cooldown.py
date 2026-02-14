@@ -2,7 +2,7 @@ import pytest
 
 from battle_system.core.types import CombatantID
 from battle_system.core.models import Stats, CharacterDef
-from battle_system.core.commands import Step
+from battle_system.core.commands import Step, Skill
 from battle_system.engine.engine import BattleEngine
 
 
@@ -61,10 +61,14 @@ def test_phase10_main_cannot_be_used_twice_same_turn():
     A1 = CombatantID("A1")
     E1 = CombatantID("E1")
 
-    eng.apply_steps(bs, [Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="MAIN")])
+    skill = Skill(skill_id="atk", name="atk", actor=A1, action_type="MAIN",
+                  steps=[Step(kind="ATTACK", target=E1)])
+    eng.apply_skill(bs, skill)
 
     with pytest.raises(ValueError, match="Main action already used this turn"):
-        eng.apply_steps(bs, [Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="MAIN")])
+        skill2 = Skill(skill_id="atk2", name="atk2", actor=A1, action_type="MAIN",
+                       steps=[Step(kind="ATTACK", target=E1)])
+        eng.apply_skill(bs, skill2)
 
 
 def test_phase10_sub_can_be_used_once_and_independent_from_main():
@@ -86,11 +90,18 @@ def test_phase10_sub_can_be_used_once_and_independent_from_main():
     A1 = CombatantID("A1")
     E1 = CombatantID("E1")
 
-    eng.apply_steps(bs, [Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="MAIN")])
-    eng.apply_steps(bs, [Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="SUB")])
+    skill_main = Skill(skill_id="atk_main", name="atk_main", actor=A1, action_type="MAIN",
+                       steps=[Step(kind="ATTACK", target=E1)])
+    eng.apply_skill(bs, skill_main)
+
+    skill_sub = Skill(skill_id="atk_sub", name="atk_sub", actor=A1, action_type="SUB",
+                      steps=[Step(kind="ATTACK", target=E1)])
+    eng.apply_skill(bs, skill_sub)
 
     with pytest.raises(ValueError, match="Sub action already used this turn"):
-        eng.apply_steps(bs, [Step(kind="ATTACK", actor=A1, target=E1, reaction_immune=False, action_type="SUB")])
+        skill_sub2 = Skill(skill_id="atk_sub2", name="atk_sub2", actor=A1, action_type="SUB",
+                           steps=[Step(kind="ATTACK", target=E1)])
+        eng.apply_skill(bs, skill_sub2)
 
 
 def test_phase11_end_turn_decrements_cooldowns_for_all_combatants():

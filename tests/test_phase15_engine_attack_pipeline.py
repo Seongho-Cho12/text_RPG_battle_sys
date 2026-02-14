@@ -3,7 +3,7 @@ import pytest
 
 from battle_system.core.types import CombatantID
 from battle_system.core.models import Stats, CharacterDef
-from battle_system.core.commands import Step
+from battle_system.core.commands import Step, Skill
 from battle_system.engine.engine import BattleEngine
 
 from battle_system.rules.indices.hit import compute_hit_index, compute_evade_index
@@ -82,10 +82,14 @@ def run_one_attack_with_seed(seed: int) -> tuple[str, int, int, list[str], tuple
 
     hp_before = bs.combatants[E1].hp
 
-    out = eng.apply_steps(
-        bs,
-        [Step(kind="ATTACK", actor=A1, target=E1, action_type="MAIN")],
+    skill = Skill(
+        skill_id="test_attack",
+        name="test_attack",
+        actor=A1,
+        action_type="MAIN",
+        steps=[Step(kind="ATTACK", target=E1)],
     )
+    out = eng.apply_skill(bs, skill)
     hp_after = bs.combatants[E1].hp
 
     # 이벤트에서 outcome/dmg 파싱(현재 엔진 로그 포맷: "STEP: ATTACK A1->E1 outcome=... dmg=...")
@@ -176,7 +180,7 @@ def test_phase15_engine_attack_pipeline_turn_order_indices_checks_damage():
     expected_evade = compute_evade_index(bs.defs[E1].stats)       # 8
 
     # 치명 기대값(AGI, level=10 언커먼)
-    ci = compute_crit_indices(attacker_level=bs.defs[A1].level, attacker_stats=bs.defs[A1].stats, crit_stat="AGI")
+    ci = compute_crit_indices(attacker_level=bs.defs[A1].level, attacker_stats=bs.defs[A1].stats, defender_stats=bs.defs[E1].stats, crit_stat="AGI")
     expected_crit = (ci.weak, ci.strong, ci.crit)                # (25,35,12)
 
     ai = compute_attack_indices(bs, attacker=A1, defender=E1, crit_stat="AGI", modifiers=IndexModifiers())

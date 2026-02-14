@@ -79,19 +79,19 @@ def test_phase27_bleeding_1turn_triggers_twice_on_tick_1_and_5_and_then_stops():
     """
     eng, bs, victim = _mk_engine_2v2()
 
-    bs.combatants[victim].effects["Bleeding"] = turns_to_ticks_for_battle(bs, 1)  # 5
+    bs.combatants[victim].effects["BLEEDING"] = turns_to_ticks_for_battle(bs, 1)  # 5
     hp0 = bs.combatants[victim].hp
 
     events_5 = _run_end_turns(eng, bs, 5)
     hp1 = bs.combatants[victim].hp
 
-    ev_bleed = _dot_events_for(events_5, cid=victim, effect="Bleeding")
+    ev_bleed = _dot_events_for(events_5, cid=victim, effect="BLEEDING")
     assert len(ev_bleed) == 2
     assert hp1 == hp0 - 2
 
     # 추가로 4틱(다음 boundary tick=9)까지 진행해도 Bleeding은 만료됐으니 0회
     events_more = _run_end_turns(eng, bs, 4)
-    ev_bleed_more = _dot_events_for(events_more, cid=victim, effect="Bleeding")
+    ev_bleed_more = _dot_events_for(events_more, cid=victim, effect="BLEEDING")
     assert len(ev_bleed_more) == 0
     assert bs.combatants[victim].hp == hp1
 
@@ -107,19 +107,19 @@ def test_phase27_poisoned_2turn_triggers_three_times_on_tick_1_5_9_and_then_stop
     """
     eng, bs, victim = _mk_engine_2v2()
 
-    bs.combatants[victim].effects["Poisoned"] = turns_to_ticks_for_battle(bs, 2)  # 9
+    bs.combatants[victim].effects["POISONED"] = turns_to_ticks_for_battle(bs, 2)  # 9
     hp0 = bs.combatants[victim].hp
 
     events_9 = _run_end_turns(eng, bs, 9)
     hp1 = bs.combatants[victim].hp
 
-    ev = _dot_events_for(events_9, cid=victim, effect="Poisoned")
+    ev = _dot_events_for(events_9, cid=victim, effect="POISONED")
     assert len(ev) == 3
     assert hp1 == hp0 - 3
 
     # 만료 후 추가 진행해도 발동 없음
     events_more = _run_end_turns(eng, bs, 4)
-    assert len(_dot_events_for(events_more, cid=victim, effect="Poisoned")) == 0
+    assert len(_dot_events_for(events_more, cid=victim, effect="POISONED")) == 0
     assert bs.combatants[victim].hp == hp1
 
 
@@ -134,19 +134,19 @@ def test_phase27_decay_tick_based_triggers_on_tick_1_4_7_for_7ticks_and_then_sto
     """
     eng, bs, victim = _mk_engine_2v2()
 
-    bs.combatants[victim].effects["Decay"] = 7
+    bs.combatants[victim].effects["DECAY"] = 7
     hp0 = bs.combatants[victim].hp
 
     events_7 = _run_end_turns(eng, bs, 7)
     hp1 = bs.combatants[victim].hp
 
-    ev = _dot_events_for(events_7, cid=victim, effect="Decay")
+    ev = _dot_events_for(events_7, cid=victim, effect="DECAY")
     assert len(ev) == 3
     assert hp1 == hp0 - 6
 
     # 만료 후 추가 진행해도 발동 없음
     events_more = _run_end_turns(eng, bs, 3)
-    assert len(_dot_events_for(events_more, cid=victim, effect="Decay")) == 0
+    assert len(_dot_events_for(events_more, cid=victim, effect="DECAY")) == 0
     assert bs.combatants[victim].hp == hp1
 
 
@@ -161,9 +161,9 @@ def test_phase27_combined_effects_emit_separate_log_lines_and_damage_stacks():
     """
     eng, bs, victim = _mk_engine_2v2()
 
-    bs.combatants[victim].effects["Bleeding"] = turns_to_ticks_for_battle(bs, 1)  # 5
-    bs.combatants[victim].effects["Poisoned"] = turns_to_ticks_for_battle(bs, 1)  # 5
-    bs.combatants[victim].effects["Decay"] = 7
+    bs.combatants[victim].effects["BLEEDING"] = turns_to_ticks_for_battle(bs, 1)  # 5
+    bs.combatants[victim].effects["POISONED"] = turns_to_ticks_for_battle(bs, 1)  # 5
+    bs.combatants[victim].effects["DECAY"] = 7
 
     hp0 = bs.combatants[victim].hp
 
@@ -171,9 +171,9 @@ def test_phase27_combined_effects_emit_separate_log_lines_and_damage_stacks():
     events = _run_end_turns(eng, bs, 1)
     hp1 = bs.combatants[victim].hp
 
-    ev_b = _dot_events_for(events, cid=victim, effect="Bleeding")
-    ev_p = _dot_events_for(events, cid=victim, effect="Poisoned")
-    ev_d = _dot_events_for(events, cid=victim, effect="Decay")
+    ev_b = _dot_events_for(events, cid=victim, effect="BLEEDING")
+    ev_p = _dot_events_for(events, cid=victim, effect="POISONED")
+    ev_d = _dot_events_for(events, cid=victim, effect="DECAY")
 
     assert len(ev_b) == 1
     assert len(ev_p) == 1

@@ -4,7 +4,7 @@ import pytest
 from battle_system.engine.engine import BattleEngine
 from battle_system.core.models import Stats, CharacterDef
 from battle_system.core.types import CombatantID
-from battle_system.core.commands import Step
+from battle_system.core.commands import Step, Skill
 from battle_system.timebase.durations import turns_to_ticks_for_battle
 
 
@@ -34,18 +34,20 @@ def test_phase19_1_effect_turns_to_ticks_saved_correctly():
     assert expected_ticks == 5  # 2*2+1
 
     random.seed(0)
-    out = eng.apply_steps(
-        bs,
-        [Step(
+    skill = Skill(
+        skill_id="test_eff_1",
+        name="test_eff_1",
+        actor=bs.current_actor_id(),
+        action_type="MAIN",
+        steps=[Step(
             kind="APPLY_EFFECT",
-            actor=bs.current_actor_id(),
             target=tgt,
             effect_id=eff,
             effect_duration=turns,     # ✅ 턴 입력
             status_inflict=inflict,
-            action_type="MAIN",
         )],
     )
+    out = eng.apply_skill(bs, skill)
 
     print("\n[Phase19-1] effect saved")
     for e in out.events:
@@ -70,18 +72,20 @@ def test_phase19_2_end_turn_decrements_ticks_each_turn():
     inflict = 10
 
     random.seed(1)
-    eng.apply_steps(
-        bs,
-        [Step(
+    skill = Skill(
+        skill_id="test_eff_2",
+        name="test_eff_2",
+        actor=bs.current_actor_id(),
+        action_type="MAIN",
+        steps=[Step(
             kind="APPLY_EFFECT",
-            actor=bs.current_actor_id(),
             target=tgt,
             effect_id=eff,
             effect_duration=turns,
             status_inflict=inflict,
-            action_type="MAIN",
         )],
     )
+    eng.apply_skill(bs, skill)
 
     assert bs.combatants[tgt].effects[eff] == 5
 
@@ -105,18 +109,20 @@ def test_phase19_3_ticks_reach_zero_then_deleted():
     inflict = 10
 
     random.seed(2)
-    eng.apply_steps(
-        bs,
-        [Step(
+    skill = Skill(
+        skill_id="test_eff_3",
+        name="test_eff_3",
+        actor=bs.current_actor_id(),
+        action_type="MAIN",
+        steps=[Step(
             kind="APPLY_EFFECT",
-            actor=bs.current_actor_id(),
             target=tgt,
             effect_id=eff,
             effect_duration=turns,
             status_inflict=inflict,
-            action_type="MAIN",
         )],
     )
+    eng.apply_skill(bs, skill)
     assert bs.combatants[tgt].effects[eff] == 5
 
     for _ in range(5):
@@ -147,18 +153,16 @@ def test_phase19_4_cooldown_1turn_blocks_on_next_own_turn_then_expires():
     expected_cd_ticks = turns_to_ticks_for_battle(bs, cd_turns)
     assert expected_cd_ticks == 3
 
-    # A1 턴: 스킬 사용(ATTACK에 cooldown만 부착해서 테스트)
-    out1 = eng.apply_steps(
-        bs,
-        [Step(
-            kind="ATTACK",
-            actor=bs.current_actor_id(),
-            target=CombatantID("E1"),
-            action_type="MAIN",
-            cooldown_id=skill_id,
-            cooldown_duration=cd_turns,   # ✅ 턴
-        )],
+    # A1 턴: 스킬 사용(ATTACK에 cooldown 부착 — Skill 레벨에서 처리)
+    skill = Skill(
+        skill_id=skill_id,
+        name="test_cd_skill",
+        actor=bs.current_actor_id(),
+        action_type="MAIN",
+        cooldown_turns=cd_turns,
+        steps=[Step(kind="ATTACK", target=CombatantID("E1"))],
     )
+    out1 = eng.apply_skill(bs, skill)
     assert bs.combatants[actor].cooldowns[skill_id] == 3
 
     # A1 턴 종료: -1 => 2
@@ -172,17 +176,15 @@ def test_phase19_4_cooldown_1turn_blocks_on_next_own_turn_then_expires():
 
     # A1의 다음 턴: 아직 1 남았으므로 사용 불가
     with pytest.raises(ValueError):
-        eng.apply_steps(
-            bs,
-            [Step(
-                kind="ATTACK",
-                actor=bs.current_actor_id(),
-                target=CombatantID("E1"),
-                action_type="MAIN",
-                cooldown_id=skill_id,
-                cooldown_duration=cd_turns,
-            )],
+        skill_blocked = Skill(
+            skill_id=skill_id,
+            name="test_cd_skill",
+            actor=bs.current_actor_id(),
+            action_type="MAIN",
+            cooldown_turns=cd_turns,
+            steps=[Step(kind="ATTACK", target=CombatantID("E1"))],
         )
+        eng.apply_skill(bs, skill_blocked)
 
     # 이 턴을 넘기면 0이 되어 삭제
     eng.end_turn(bs)
@@ -197,7 +199,7 @@ def test_phase19_5_reapply_same_effect_adds_duration_ticks():
     """
     5) 동일 effect_id를 다시 걸면 '덮어쓰기'가 아니라 tick이 누적되는지 검증.
     - 2인 전투에서 1턴 부여 tick=3
-    - 1턴을 2번 걸면 total=6
+    - 1턴을 2번 걸면 total=6 (단, 2번째 적용 전 end_turn 2회로 tick이 1 감소)
     """
     eng = BattleEngine()
     a1 = _mk_char("A1", level=5, stats=Stats(str=1, agi=1, con=1, int=1, wis=1, cha=0))
@@ -212,36 +214,41 @@ def test_phase19_5_reapply_same_effect_adds_duration_ticks():
     assert ticks_per_apply == 3
 
     random.seed(10)
-    out1 = eng.apply_steps(
-        bs,
-        [Step(
+    skill1 = Skill(
+        skill_id="test_reapply_1",
+        name="test_reapply_1",
+        actor=bs.current_actor_id(),
+        action_type="MAIN",
+        steps=[Step(
             kind="APPLY_EFFECT",
-            actor=bs.current_actor_id(),
             target=tgt,
             effect_id=eff,
             effect_duration=turns,
             status_inflict=inflict,
-            action_type="MAIN",
         )],
     )
+    out1 = eng.apply_skill(bs, skill1)
     assert bs.combatants[tgt].effects[eff] == 3
 
-    eng.end_turn(bs)
-    eng.end_turn(bs)
+    eng.end_turn(bs)  # -1 => 2
+    eng.end_turn(bs)  # -1 => 1
 
     random.seed(11)
-    out2 = eng.apply_steps(
-        bs,
-        [Step(
+    skill2 = Skill(
+        skill_id="test_reapply_2",
+        name="test_reapply_2",
+        actor=bs.current_actor_id(),
+        action_type="MAIN",
+        steps=[Step(
             kind="APPLY_EFFECT",
-            actor=bs.current_actor_id(),
             target=tgt,
             effect_id=eff,
             effect_duration=turns,
             status_inflict=inflict,
-            action_type="MAIN",
         )],
     )
+    out2 = eng.apply_skill(bs, skill2)
+    # 1(기존) + 3(새로 추가) = 4
     assert bs.combatants[tgt].effects[eff] == 4
 
     print("\n[Phase19-5] effect reapply adds ticks")

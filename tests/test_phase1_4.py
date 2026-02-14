@@ -129,8 +129,8 @@ def test_phase2_action_slots_and_turn_advance():
     st = bs.combatants[cur]
     assert st.can_main is True and st.can_sub is True
 
-    eng.use_main(bs, cur)
-    eng.use_sub(bs, cur)
+    eng._use_main(bs, cur)
+    eng._use_sub(bs, cur)
     assert st.can_main is False and st.can_sub is False
 
     eng.end_turn(bs)
@@ -166,7 +166,7 @@ def test_phase2_cannot_act_out_of_turn():
     other = CombatantID("E") if str(cur) == "A" else CombatantID("A")
 
     with pytest.raises(ValueError):
-        eng.use_main(bs, other)
+        eng._use_main(bs, other)
 
 
 def test_phase3_tick_and_duration_decrement():

@@ -1,0 +1,25 @@
+============================================================
+[PASS] tests/test_phase31_tactical_throw.py::test_phase31_throw_requires_item_id_and_does_nothing
+------------------------------------------------------------
+[EXPERIMENT]
+(No experiment description. Add a docstring to the test.)
+
+
+============================================================
+[PASS] tests/test_phase31_tactical_throw.py::test_phase31_throw_does_not_consume_if_out_of_range
+------------------------------------------------------------
+[EXPERIMENT]
+사거리/타겟 검증 실패하면 아이템이 소비되면 안 됨.
+    (현재 코드 순서면 여기서 소비되는 버그가 발생)
+
+
+============================================================
+[PASS] tests/test_phase31_tactical_throw.py::test_phase31_throw_consumes_records_delta_applies_mods_breaks_stealth_and_allows_chain
+------------------------------------------------------------
+[EXPERIMENT]
+- 투척 성공 시 snapshot 감소 + delta -1
+    - 무게(8) -> hit(-10+STR//4)=-6, weak=-10, critical=+2 적용
+    - hit 성공 시 STEALTH 해제
+    - throw 결과가 CRITICAL(=3)로 계산돼 다음 step(require_prev_gte=3)이 실행됨
+
+

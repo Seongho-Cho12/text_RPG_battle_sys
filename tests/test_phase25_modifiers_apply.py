@@ -33,13 +33,13 @@ def _mk_engine_1v1() -> Tuple[BattleEngine, object, CombatantID, CombatantID]:
     return eng, bs, CombatantID("A"), CombatantID("E")
 
 
-def _add_mod(bs, cid: CombatantID, *, key: str, delta: int, ticks: int = 9999):
+def _add_mod(bs, cid: CombatantID, *, key: str, delta: int, ticks: int = 9999, status_tag: str = None):
     """
     테스트에서는 apply_modifier step을 거치지 않고 직접 넣는다.
     목적: 'modifier가 계산에 반영되는가'만 검증.
     """
     bs.combatants[cid].modifiers.append(
-        ModifierInstance(mid="T", key=key, delta=int(delta), ticks_left=int(ticks))
+        ModifierInstance(mid="T", key=key, delta=int(delta), ticks_left=int(ticks), status_tag=status_tag)
     )
 
 
@@ -64,6 +64,11 @@ def _parse_inflict_resist(line: str) -> tuple[int, int]:
     """
     STATUS_CHECK: ... inflict=XX resist=YY ... 에서 XX/YY 뽑기
     """
+    # New log format: inflict=30+0 resist=15+0 (base+modifier)
+    m = re.search(r"inflict=(\d+)\+(\d+)\s+resist=(\d+)\+(\d+)", line)
+    if m:
+        return int(m.group(1)) + int(m.group(2)), int(m.group(3)) + int(m.group(4))
+    # Fallback: old format inflict=30 resist=15
     m = re.search(r"inflict=(\d+)\s+resist=([0-9]+)", line)
     assert m, f"Cannot parse inflict/resist from: {line}"
     return int(m.group(1)), int(m.group(2))
@@ -206,8 +211,8 @@ def test_phase25_status_inflict_resist_modifiers_adjust_roll_inputs_in_logs():
     line1 = _find_status_check(_events(out1))
     inf1, res1 = _parse_inflict_resist(line1)
 
-    _add_mod(bs, A, key="STATUS_INFLICT", delta=40)
-    _add_mod(bs, E, key="STATUS_RESIST", delta=15)
+    _add_mod(bs, A, key="STATUS_INFLICT", delta=40, status_tag="ALL")
+    _add_mod(bs, E, key="STATUS_RESIST", delta=15, status_tag="ALL")
 
     out2 = eng.apply_skill(bs, skill_2)
     line2 = _find_status_check(_events(out2))
