@@ -29,7 +29,7 @@ def compute_evade_index(stats: Stats) -> int:
     """
     피격자 회피 지수
     - AGI/WIS 두 값으로 계산
-    - {(max*2 + min)}/3
+    - {(AGI*2 + WIS)}/3
 
     NOTE: 정수 지수로 굴리기 때문에 반올림 방식이 중요함.
           여기서는 int()로 내림 처리. (원하면 round로 바꾸면 됨)
