@@ -36,9 +36,7 @@ def compute_evade_index(stats: Stats) -> int:
     """
     a = int(stats.agi)
     w = int(stats.wis)
-    hi = a if a >= w else w
-    lo = w if a >= w else a
-    return int((hi * 2 + lo) / 3)
+    return int((a * 2 + w) / 3)
 
 
 def compute_hit_indices(attacker_level: int, defender_stats: Stats) -> HitIndices:
