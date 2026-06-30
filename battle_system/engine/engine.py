@@ -1,7 +1,8 @@
 # battle_system/engine/engine.py
+# fmt: off
 
 from __future__ import annotations
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 from typing import List, Dict, Optional
 import uuid
 
@@ -169,10 +170,18 @@ class BattleEngine:
         steps = skill.steps or []
         prev: int = 1  # 첫 step은 기본 실행 가능
         for s in steps:
-            # 1) 조건 미달이면 이후 step 전부 중단
+            # 1a) require_prev_gte 조건 미달이면 이후 step 전부 중단
             if prev < s.require_prev_gte:
                 events.append(
-                    f"STEP_SKIPPED: kind={s.kind} require_prev_gte={getattr(s, 'require_prev_gte', 0)} prev={prev}"
+                    f"STEP_SKIPPED: kind={s.kind} require_prev_gte={s.require_prev_gte} prev={prev}"
+                )
+                events.append("CHAIN_BREAK")
+                break
+
+            # 1b) require_prev_lte 조건 초과이면 이후 step 전부 중단
+            if s.require_prev_lte is not None and prev > s.require_prev_lte:
+                events.append(
+                    f"STEP_SKIPPED: kind={s.kind} require_prev_lte={s.require_prev_lte} prev={prev}"
                 )
                 events.append("CHAIN_BREAK")
                 break
@@ -453,6 +462,10 @@ class BattleEngine:
             return
 
     def _apply_step(self, bs: BattleState, *, actor: CombatantID, s: Step, crit_stat: CritStat) -> tuple[int, list[str]]:
+        # target "SELF": step 대상을 시전자(actor)로 교체
+        if s.target == "SELF":
+            s = replace(s, target=actor)
+
         events: list[str] = []
         prev_gid = bs.combatants[actor].group_id
         result: int = 1

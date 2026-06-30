@@ -61,6 +61,10 @@ class Step:
 
     # 이전 Step 조건 필요치
     require_prev_gte: int = 0
+    require_prev_lte: Optional[int] = None  # None이면 미적용; prev > lte이면 스킵
+
+    # step 단위 대상 필터: 미지정 시 Skill.target_filter 상속
+    step_target_filter: Optional[str] = None  # ENEMY / ALLY / SELF / ANY
 
     # instant(스텝 단발성) 공격 지수 보정
     attack_modifiers: IndexModifiers = IndexModifiers()

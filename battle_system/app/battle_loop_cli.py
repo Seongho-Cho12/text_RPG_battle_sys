@@ -175,17 +175,18 @@ def _handle_skill_selection(
             print("Invalid item")
             return bs
 
-    # 대상 선택
-    target: Optional[CombatantID] = None
+    # 대상 선택 (슬롯별)
+    targets: Dict[str, CombatantID] = {}
     av = get_skill_availability(bs, sk)
-    if av.spec.target_required:
+    for slot in av.spec.target_slots:
         target_opts = list_target_options(bs, actor, sk)
         enabled_targets = [t for t in target_opts if t.enabled]
         if not enabled_targets:
             print("No valid targets")
             return bs
 
-        print("\n[Targets]")
+        slot_label = f" ({slot.slot_name} - {slot.target_filter})" if len(av.spec.target_slots) > 1 else ""
+        print(f"\n[Targets{slot_label}]")
         for i, t in enumerate(target_opts):
             tag = "" if t.enabled else f" (DISABLED: {t.reason})"
             cst = bs.combatants[t.target_id]
@@ -205,9 +206,9 @@ def _handle_skill_selection(
         if not chosen_t.enabled:
             print(f"Target '{chosen_t.target_id}' is disabled: {chosen_t.reason}")
             return bs
-        target = chosen_t.target_id
+        targets[slot.slot_name] = chosen_t.target_id
 
-    concrete = instantiate_skill_with_inputs(sk, target=target, throw_item_id=throw_item_id)
+    concrete = instantiate_skill_with_inputs(sk, targets=targets, throw_item_id=throw_item_id)
     outcome = engine.apply_skill(bs, concrete)
 
     for e in outcome.events:
@@ -256,15 +257,16 @@ def _handle_item_use(
         print(f"Cannot use: {av.reason}")
         return bs
 
-    target: Optional[CombatantID] = None
-    if av.spec.target_required:
+    targets: Dict[str, CombatantID] = {}
+    for slot in av.spec.target_slots:
         target_opts = list_target_options(bs, actor, sk)
         enabled_targets = [t for t in target_opts if t.enabled]
         if not enabled_targets:
             print("No valid targets")
             return bs
 
-        print("\n[Targets]")
+        slot_label = f" ({slot.slot_name} - {slot.target_filter})" if len(av.spec.target_slots) > 1 else ""
+        print(f"\n[Targets{slot_label}]")
         for i, t in enumerate(target_opts):
             tag = "" if t.enabled else f" (DISABLED: {t.reason})"
             cst = bs.combatants[t.target_id]
@@ -284,10 +286,10 @@ def _handle_item_use(
         if not chosen_t.enabled:
             print(f"Target '{chosen_t.target_id}' is disabled: {chosen_t.reason}")
             return bs
-        target = chosen_t.target_id
+        targets[slot.slot_name] = chosen_t.target_id
 
     # 대상 채우기
-    concrete = instantiate_skill_with_inputs(sk, target=target)
+    concrete = instantiate_skill_with_inputs(sk, targets=targets)
     outcome = engine.apply_skill(bs, concrete)
 
     for e in outcome.events:

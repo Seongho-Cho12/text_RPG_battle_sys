@@ -1,7 +1,7 @@
 # battle_system/app/skill_ui.py
 from __future__ import annotations
 
-from dataclasses import dataclass, replace
+from dataclasses import dataclass, replace, field
 from typing import Dict, List, Optional, Tuple, Literal
 
 from battle_system.core.types import CombatantID
@@ -25,18 +25,26 @@ AvailabilityReason = Literal[
 
 
 @dataclass(frozen=True)
+class TargetSlot:
+    """UI가 선택해야 하는 대상 슬롯 1개."""
+    slot_name: str                    # "T1", "T2", ...
+    target_filter: str                # ENEMY / ALLY / ANY / SELF
+    candidates: List[CombatantID]     # 선택 가능 후보
+
+
+@dataclass(frozen=True)
 class SkillInputSpec:
     target_required: bool
     item_required: bool
-    target_candidates: List[CombatantID]
+    target_candidates: List[CombatantID]  # T1 후보 (하위 호환)
     item_candidates: List[str]
+    target_slots: List[TargetSlot] = field(default_factory=list)  # 순서대로 선택
 
 
 @dataclass(frozen=True)
 class SkillAvailability:
     usable: bool
     reason: AvailabilityReason
-    # 엔진과 동일한 메시지를 넣어두면 UI/로그에서 그대로 보여줄 수 있음
     engine_message: str
     spec: SkillInputSpec
 
@@ -117,29 +125,58 @@ def get_skill_availability(bs: BattleState, sk: Skill) -> SkillAvailability:
 
 
 def compute_input_spec(bs: BattleState, actor: CombatantID, sk: Skill) -> SkillInputSpec:
-    target_required = False
     item_required = False
 
-    for s in (sk.steps or []):
+    # --- 슬롯 수집 ---
+    seen_slots: dict[str, int] = {}  # slot_name -> 처음 등장 step index
+    slot_filters: dict[str, str] = {}  # slot_name -> target_filter
+    slot_step_indices: dict[str, List[int]] = {}  # slot_name -> step indices
+
+    for i, s in enumerate(sk.steps or []):
         if s.kind == "TACTICAL_THROW":
             item_required = True
-        if _step_needs_target(s) and s.target is None:
-            target_required = True
 
-    target_candidates: List[CombatantID] = []
-    if target_required:
-        target_candidates = _compute_target_candidates_union(bs, actor, sk)
+        if not _step_needs_target(s):
+            continue
 
+        slot = _resolve_slot_name(s.target)
+        if slot is None:  # "SELF" or non-target step
+            continue
+
+        if slot not in seen_slots:
+            seen_slots[slot] = i
+            # step-level filter > skill-level filter
+            stf = s.step_target_filter or getattr(sk, "target_filter", "ANY")
+            slot_filters[slot] = stf
+            slot_step_indices[slot] = []
+        slot_step_indices[slot].append(i)
+
+    # --- 슬롯별 후보 계산 (위치 시뮬레이션 포함) ---
+    steps = sk.steps or []
+    target_slots: List[TargetSlot] = []
+    for slot_name in sorted(seen_slots, key=lambda s: seen_slots[s]):
+        first_step_idx = seen_slots[slot_name]
+        tf = slot_filters[slot_name]
+        # 이 슬롯 첫 등장 이전 step들의 MOVE 효과를 시뮬레이션
+        predicted_gid = _simulate_group_after_steps(bs, actor, steps[:first_step_idx], seen_slots)
+        candidates = _compute_slot_candidates(bs, actor, sk, steps, slot_step_indices[slot_name], tf, predicted_gid)
+        target_slots.append(TargetSlot(slot_name=slot_name, target_filter=tf, candidates=candidates))
+
+    # --- 아이템 후보 ---
     item_candidates: List[str] = []
     if item_required:
         snap = bs.inventory_snapshot.get(actor, {})
         item_candidates = [item_id for item_id, cnt in snap.items() if int(cnt) > 0]
+
+    target_required = len(target_slots) > 0
+    target_candidates = target_slots[0].candidates if target_slots else []
 
     return SkillInputSpec(
         target_required=target_required,
         item_required=item_required,
         target_candidates=target_candidates,
         item_candidates=item_candidates,
+        target_slots=target_slots,
     )
 
 
@@ -147,21 +184,28 @@ def instantiate_skill_with_inputs(
     sk: Skill,
     *,
     target: Optional[CombatantID] = None,
+    targets: Optional[Dict[str, CombatantID]] = None,
     throw_item_id: Optional[str] = None,
 ) -> Skill:
     """
     UI 입력을 반영해 실행용 Skill 인스턴스 생성.
-    - Step.target None인 곳에 target 채움
+    - 슬롯 이름(T1, T2, ...)을 실제 CombatantID로 치환
     - TACTICAL_THROW에 throw_item_id 채움
+    - 하위 호환: target kwarg는 {"T1": target}으로 변환
     """
+    # 하위 호환: 단일 target → dict
+    if targets is None:
+        targets = {}
+    if target is not None and "T1" not in targets:
+        targets["T1"] = target
+
     new_steps: List[Step] = []
     for s in (sk.steps or []):
         ns = s
 
-        if _step_needs_target(s) and s.target is None:
-            if target is None:
-                raise ValueError("target is required but not provided")
-            ns = replace(ns, target=target)
+        slot = _resolve_slot_name(s.target)
+        if slot is not None and slot in targets:
+            ns = replace(ns, target=targets[slot])
 
         if s.kind == "TACTICAL_THROW":
             if throw_item_id is None:
@@ -169,6 +213,14 @@ def instantiate_skill_with_inputs(
             ns = replace(ns, throw_item_id=throw_item_id)
 
         new_steps.append(ns)
+
+    # 슬롯이 있는데 targets에 없으면 에러
+    for s in (sk.steps or []):
+        if not _step_needs_target(s):
+            continue
+        slot = _resolve_slot_name(s.target)
+        if slot is not None and slot not in targets:
+            raise ValueError(f"target for slot '{slot}' is required but not provided")
 
     return replace(sk, steps=new_steps)
 
@@ -246,11 +298,14 @@ def can_use_skill_due_to_effects_like_engine(
 # -----------------------------------------------------------------------------
 
 def _empty_spec() -> SkillInputSpec:
-    return SkillInputSpec(False, False, [], [])
+    return SkillInputSpec(False, False, [], [], [])
 
 
 def _step_needs_target(s: Step) -> bool:
-    # Step 정의/엔진 처리와 맞춘 최소 규칙
+    """Step이 UI 대상 선택을 필요로 하는지 판별."""
+    # SELF는 자동 해소, 선택 불필요
+    if s.target == "SELF":
+        return False
     if s.kind == "MOVE_ENGAGE":
         return True
     if s.kind in ("ATTACK", "APPLY_EFFECT", "REMOVE_EFFECT", "APPLY_MODIFIER", "APPLY_HP_DELTA", "DETECT_STEALTH"):
@@ -258,28 +313,77 @@ def _step_needs_target(s: Step) -> bool:
     return False
 
 
-def _compute_target_candidates_union(bs: BattleState, actor: CombatantID, sk: Skill) -> List[CombatantID]:
-    """
-    Phase34+35 후보 계산:
-    - DOWN 제외
-    - range 기반으로 최소 필터
-    - area=GROUP은 anchor만 고르면 엔진이 확장하므로 후보는 SINGLE과 동일 취급
-    - Phase 35: target_filter(SELF/ALLY/ENEMY/ANY)로 최종 필터링
-    """
-    tf = getattr(sk, "target_filter", "ANY")
-    a_gid = bs.combatants[actor].group_id
+def _resolve_slot_name(target) -> Optional[str]:
+    """target 값을 슬롯 이름으로 변환. SELF/None/CombatantID 구분."""
+    if target is None:
+        return "T1"  # null = T1 (하위 호환)
+    if target == "SELF":
+        return None  # 선택 불필요
+    if isinstance(target, str) and target.startswith("T") and target[1:].isdigit():
+        return target  # T1, T2, ...
+    # 이미 CombatantID로 채워진 경우
+    return None
 
-    # SELF/ALLY 필터 시 자기 자신도 후보 풀에 포함해야 한다
-    if tf in ("SELF", "ALLY"):
+
+def _simulate_group_after_steps(
+    bs: BattleState,
+    actor: CombatantID,
+    steps: List[Step],
+    resolved_slots: dict,
+) -> Optional[object]:
+    """
+    주어진 step들을 실행했을 때 actor의 group_id를 예측.
+    MOVE_ENGAGE → 대상의 group_id로 이동
+    MOVE_DISENGAGE → 독립 group (None으로 표현)
+    """
+    predicted_gid = bs.combatants[actor].group_id
+    for s in steps:
+        if s.kind == "MOVE_ENGAGE":
+            # 대상 슬롯이 이미 해소됐으면 그 대상의 group으로
+            slot = _resolve_slot_name(s.target)
+            if slot is not None and slot in resolved_slots:
+                # 적 team의 아무 group이나 잡으면 됨
+                actor_team = bs.combatants[actor].team
+                for cid, cst in bs.combatants.items():
+                    if not cst.is_down and cst.team != actor_team:
+                        predicted_gid = cst.group_id
+                        break
+            elif s.target is not None and s.target != "SELF":
+                # 이미 CombatantID로 채워진 경우
+                tgt = s.target
+                if tgt in bs.combatants:
+                    predicted_gid = bs.combatants[tgt].group_id
+        elif s.kind == "MOVE_DISENGAGE":
+            predicted_gid = None  # type: ignore
+    return predicted_gid
+
+
+def _compute_slot_candidates(
+    bs: BattleState,
+    actor: CombatantID,
+    sk: Skill,
+    steps: List[Step],
+    step_indices: List[int],
+    target_filter: str,
+    predicted_gid,
+) -> List[CombatantID]:
+    """
+    슬롯의 후보 대상 계산.
+    - target_filter로 ENEMY/ALLY/SELF/ANY 필터링
+    - predicted_gid로 MELEE/RANGED range 판정
+    """
+    actor_team = bs.combatants[actor].team
+
+    # 생존 풀
+    if target_filter in ("SELF", "ALLY"):
         alive_pool = [cid for cid, st in bs.combatants.items() if not st.is_down]
     else:
-        alive_pool = [cid for cid, st in bs.combatants.items() if (not st.is_down) and cid != actor]
+        alive_pool = [cid for cid, st in bs.combatants.items() if not st.is_down and cid != actor]
 
     cands: set[CombatantID] = set()
 
-    for s in (sk.steps or []):
-        if not _step_needs_target(s):
-            continue
+    for idx in step_indices:
+        s = steps[idx]
 
         if s.kind == "MOVE_ENGAGE":
             cands.update(alive_pool)
@@ -291,12 +395,24 @@ def _compute_target_candidates_union(bs: BattleState, actor: CombatantID, sk: Sk
         if s.range == "ANY":
             cands.update(alive_pool)
         elif s.range == "MELEE":
-            cands.update([cid for cid in alive_pool if bs.combatants[cid].group_id == a_gid])
+            cands.update([cid for cid in alive_pool if bs.combatants[cid].group_id == predicted_gid])
         elif s.range == "RANGED":
-            cands.update([cid for cid in alive_pool if bs.combatants[cid].group_id != a_gid])
+            cands.update([cid for cid in alive_pool if bs.combatants[cid].group_id != predicted_gid])
 
-    # Phase 35: target_filter 적용
-    filtered = _filter_targets_by_skill(bs, actor, sk, sorted(cands, key=lambda x: str(x)))
+    # target_filter 적용
+    filtered: List[CombatantID] = []
+    for cid in sorted(cands, key=lambda x: str(x)):
+        if target_filter == "ANY":
+            filtered.append(cid)
+        elif target_filter == "SELF":
+            if cid == actor:
+                filtered.append(cid)
+        elif target_filter == "ALLY":
+            if bs.combatants[cid].team == actor_team:
+                filtered.append(cid)
+        elif target_filter == "ENEMY":
+            if bs.combatants[cid].team != actor_team:
+                filtered.append(cid)
     return filtered
 
 
@@ -312,28 +428,7 @@ def _has_invalid_range_without_anchor(sk: Skill) -> bool:
             return True
     return False
 
-def _filter_targets_by_skill(bs: BattleState, actor: CombatantID, sk: Skill, targets: List[CombatantID]) -> List[CombatantID]:
-    """
-    Phase 35: Skill.target_filter에 따라 후보 대상을 필터링.
-    - ANY:   제한 없음(그대로 반환)
-    - SELF:  자기 자신만
-    - ALLY:  actor와 같은 team(actor 자신 포함)
-    - ENEMY: actor와 다른 team
 
-    진영 판정은 CombatantState.team을 사용한다.
-    """
-    tf = getattr(sk, "target_filter", "ANY")
-    if tf == "ANY":
-        return targets
-    if tf == "SELF":
-        return [t for t in targets if t == actor]
-
-    actor_team = bs.combatants[actor].team
-    if tf == "ALLY":
-        return [t for t in targets if bs.combatants[t].team == actor_team]
-    if tf == "ENEMY":
-        return [t for t in targets if bs.combatants[t].team != actor_team]
-    return targets
 
 
 # -----------------------------------------------------------------------------
@@ -478,7 +573,8 @@ def list_target_options(
     - target_filter 불일치: disabled (WRONG_TEAM)
     - range 불일치: disabled (OUT_OF_RANGE)
     """
-    valid_set = set(_compute_target_candidates_union(bs, actor, sk))
+    spec = compute_input_spec(bs, actor, sk)
+    valid_set = set(spec.target_candidates)
     tf = getattr(sk, "target_filter", "ANY")
     actor_team = bs.combatants[actor].team
     a_gid = bs.combatants[actor].group_id

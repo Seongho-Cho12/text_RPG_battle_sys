@@ -1,0 +1,6 @@
+__pycache__/
+*.pyc
+.pytest_cache/
+.tmp/
+test-result/
+test_run_output.txt

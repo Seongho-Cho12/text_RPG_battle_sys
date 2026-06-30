@@ -91,6 +91,7 @@ class Registry:
         self.base_skills_dir = root / "skills_base"
         self.characters_dir = root / "characters"
         self.monsters_dir = root / "monsters"
+        self._monster_index = self._build_monster_index()
 
         self._base_templates = {
             "ENGAGE": self.base_skills_dir / "engage.yaml",
@@ -98,12 +99,21 @@ class Registry:
             "ESCAPE": self.base_skills_dir / "escape.yaml",
         }
 
+    def _build_monster_index(self) -> Dict[str, Path]:
+        """monsters/ 하위 모든 character.yaml을 재귀 탐색하여 {char_id: 폴더경로} 매핑."""
+        index: Dict[str, Path] = {}
+        for char_yaml in self.monsters_dir.rglob("character.yaml"):
+            d = load_character_state(char_yaml)
+            tid = d["char_id"]
+            index[tid] = char_yaml.parent
+        return index
+
     def _load_base_skills(self, actor: str) -> List[Skill]:
-        return [
-            load_skill_def(self._base_templates["ENGAGE"], actor=actor),
-            load_skill_def(self._base_templates["DISENGAGE"], actor=actor),
-            load_skill_def(self._base_templates["ESCAPE"], actor=actor),
-        ]
+        out: List[Skill] = []
+        for name, path in self._base_templates.items():
+            if path.exists():
+                out.append(load_skill_def(path, actor=actor))
+        return out
 
     def _load_character(
         self,
@@ -167,7 +177,7 @@ class Registry:
         initial_inventory: Dict[str, Dict[str, int]],
     ) -> None:
         """monsters/ 디렉토리에서 템플릿 로드 → 인스턴스 CID로 생성."""
-        mdir = self.monsters_dir / template_id
+        mdir = self._monster_index[template_id]
         state = load_character_state(mdir / "character.yaml")
 
         st = _stats_from_yaml(state["stats"])
