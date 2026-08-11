@@ -29,14 +29,16 @@ def compute_evade_index(stats: Stats) -> int:
     """
     피격자 회피 지수
     - AGI/WIS 두 값으로 계산
-    - {(AGI*2 + WIS)}/3
+    - {(max(AGI,WIS)*2 + min(AGI,WIS))}/3
 
     NOTE: 정수 지수로 굴리기 때문에 반올림 방식이 중요함.
           여기서는 int()로 내림 처리. (원하면 round로 바꾸면 됨)
     """
     a = int(stats.agi)
     w = int(stats.wis)
-    return int((a * 2 + w) / 3)
+    high = max(a, w)
+    low = min(a, w)
+    return int((high * 2 + low) / 3)
 
 
 def compute_hit_indices(attacker_level: int, defender_stats: Stats) -> HitIndices:
